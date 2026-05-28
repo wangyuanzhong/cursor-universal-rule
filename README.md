@@ -12,7 +12,21 @@
 | 2 | 云端：push 后盯 GitHub Actions，红则修到绿；修复不得与上下文及项目内 `.md`/`.txt` 中的功能/UI 定义冲突 | `post-push-ci-green.mdc` |
 | 3 | 改动结束前（push 前，或无 push 要求则任务结束前）：遍历并升级项目内 `.md`/`.txt`，与代码一致 | `docs-sync-before-finish.mdc` |
 | 4 | `.gitignore` 不得阻止 `.cursor/` 进 Git | `git-track-cursor-folder.mdc` |
-| — | 总纲：完成定义、冲突优先级 | `00-universal-core.mdc` |
+| — | 总纲：模式声明、Done check、冲突优先级 | `00-universal-core.mdc` |
+
+## 规则风格（v2）
+
+为提高 Agent 的执行率，所有 `.mdc` 已统一为下列结构，避免散文化和模糊语气：
+
+- **When this rule fires** — 一句话触发条件，不命中就在 Done check 里写 `N/A: <reason>` 跳过。
+- **You MUST** — 硬约束，编号短句，可直接对照执行。
+- **You MUST NOT** — 明确的负面清单。
+- **Required output / Stop conditions** — 任务结束时必须输出哪些信息、何时停止重试。
+
+`00-universal-core.mdc` 额外要求 Agent：
+
+1. 在计划中写一行 `MODE: Local` 或 `MODE: Cloud`，单次任务只判定一次。
+2. 在最终消息里**逐项打勾输出 Done check**（`done` / `N/A: <reason>` / `blocked: <reason>`），任何 `blocked` 必须停下来报给用户，不得越过。
 
 ## 重要说明（必读）
 

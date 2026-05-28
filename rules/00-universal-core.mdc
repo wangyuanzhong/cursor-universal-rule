@@ -1,44 +1,42 @@
 ---
-description: Universal agent workflow — definition of done, doc/code priority, local vs cloud
+description: Core contract every task in this repo must follow. Read first; obey unconditionally.
 alwaysApply: true
 ---
 
-# Universal core (all projects using this rules pack)
+# Core contract (read first, obey unconditionally)
 
-## Definition of done
+These rules are a **hard contract**, not advice. If a rule conflicts with your default behavior, the rule wins. Do not paraphrase rules into softer commitments.
 
-A task is **not finished** until **all** of the following that apply are satisfied:
+## You MUST
 
-1. **Code/build** matches user intent and passes relevant tests you can run in this environment.
-2. **Documentation**: every project `.md` and `.txt` is reviewed and updated if this change affects behavior, UI, CLI, config, or ops (see `docs-sync-before-finish.mdc`).
-3. **EXE packaging** (if this repo is an exe/desktop packager): local build or CI exe job per `exe-packaging-local-cloud.mdc`.
-4. **Git**: if you commit/push, `.cursor/` is tracked per `git-track-cursor-folder.mdc`.
-5. **Post-push CI** (cloud / after push): per `post-push-ci-green.mdc` when not opted out.
+1. **Declare mode in your plan**, before any non-trivial action, in one line:
+   - `MODE: Local` — Cursor Desktop on the developer machine with full repo checkout.
+   - `MODE: Cloud` — Cursor Cloud Agent, or any Linux/remote agent without the project's native desktop toolchain, or `CI=true` on a push-monitoring task.
+   Detect once per task; do not switch silently.
+2. **Run the Done check below** before you (a) tell the user the task is done, or (b) open / update a PR. Output the checklist verbatim with each item marked `done`, `N/A: <reason>`, or `blocked: <reason>`.
+3. **Resolve conflicts** between code, docs, tests, and CI in this order — and never silently diverge:
+   1. Product truth in `README.md`, `docs/**/*.md`, `AGENTS.md`, `CHANGELOG.md`, and any `.txt` spec shipped with the app.
+   2. Explicit user messages in **this** conversation.
+   3. Implementation code (update code **or** docs deliberately, in the same change set).
+   4. CI / workflow YAML (must reflect 1 + 3).
+4. **Execute the work yourself.** Rules do not run shell commands. Builds, tests, `gh`, and edits only happen because *you* do them. Never claim a step was done without doing it.
 
-## Local vs cloud (one rules pack, two behaviors)
+## You MUST NOT
 
-Detect mode **once per task**:
+- Mark a task done while any Done-check item is unmet. Stop and report the blocker instead.
+- Claim a rule "doesn't apply" without naming the concrete trigger that fails (e.g. "no `scripts/build-release.ps1` and no `.csproj` → EXE rule N/A").
+- Silently skip a rule. If you skip, name the rule and the reason in your final message.
+- Weaken docs, tests, or documented UI strings just to make CI green. If a CI fix would violate priority 1 or 2 above, change the implementation **or** update the doc in the same change set.
 
-| Mode | When |
-|------|------|
-| **Cloud** | Cursor Cloud Agent; or Linux/remote agent without the project's native desktop toolchain; or env `CI=true` on a push-monitoring task |
-| **Local** | Cursor Desktop on the developer machine with repo checkout |
+## Done check (output this list at end of every task)
 
-Apply the **Cloud** or **Local** subsection in each rule file. Do **not** maintain separate rule files per environment.
+```
+[ ] MODE declared (Local | Cloud)
+[ ] Code/build matches user intent; available tests pass
+[ ] Docs synced per docs-sync-before-finish.mdc (list edited files OR "reviewed N, no edits needed")
+[ ] EXE packaging satisfied per exe-packaging-local-cloud.mdc (or N/A with reason)
+[ ] .cursor/ tracked per git-track-cursor-folder.mdc (only if a commit/push happened)
+[ ] CI watched and green per post-push-ci-green.mdc (only if a push happened and not opted out)
+```
 
-**Local opt-out of post-push CI monitoring**: if `.cursor/.local-skip-post-push-ci` exists → skip `post-push-ci-green.mdc` only.
-
-## Conflict priority (fixes, CI, refactors)
-
-When code, tests, CI, and docs disagree, resolve in this order:
-
-1. **Product truth** in project docs: root `README.md`, `docs/**/*.md`, `AGENTS.md`, `CHANGELOG.md`, and any `.txt` spec shipped with the app — **functionality and UI definitions in these files win** over ad-hoc agent guesses.
-2. **This conversation** and explicit user messages in the current task.
-3. **Code** (implementation) — update code *or* update docs deliberately; never silently diverge.
-4. **CI/workflow YAML** — must reflect (1) and (3).
-
-If a CI fix would violate (1), **change the test or implementation** or **update the doc in the same PR** with a short note — do not "make CI green" by breaking documented behavior.
-
-## Honesty
-
-Rules do not run shell commands by themselves. **You (Agent) must execute** build, test, `gh`, and doc edits. Report blockers instead of claiming done.
+If any item is `blocked`, **stop and tell the user** — do not push past it.

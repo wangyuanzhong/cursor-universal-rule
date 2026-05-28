@@ -1,60 +1,52 @@
 ---
-description: After git push (cloud/default) — monitor Actions until green; fixes must respect project md/txt specs
+description: After git push (default on Cloud) — watch GitHub Actions until green; fixes must respect project docs.
 alwaysApply: true
 ---
 
-# Post-push GitHub Actions (mandatory when applicable)
+# Post-push CI watch
+
+## When this rule fires
+
+- You ran `git push`, **or**
+- You will mark work done / open / update a PR while commits are (or will be) on the remote.
+
+If the latest push **did not trigger** any workflow (check `on:` and `paths:` in `.github/workflows/*.yml`), state that explicitly and skip watching.
 
 ## Opt-out
 
-- **Local Desktop only**: if `.cursor/.local-skip-post-push-ci` exists → **skip entire rule**.
-- Cloud Agent: **never** skip unless user explicitly disables CI monitoring for this task.
+- `MODE: Local` only: if `.cursor/.local-skip-post-push-ci` exists → skip this rule entirely. State the skip in your final message.
+- `MODE: Cloud`: never skip unless the user explicitly disables CI monitoring **for this task**.
 
-## When this applies
+## You MUST
 
-- You ran **`git push`**, or
-- You will mark work **done** / open or update a PR and commits are (or will be) on the remote.
+1. Watch only runs **triggered by the latest push** on the **current branch**:
 
-If the latest push **did not trigger** any workflow (check `.github/workflows/*.yml` path filters), say so and skip watching.
+   ```bash
+   gh run list --branch "$(git rev-parse --abbrev-ref HEAD)" --limit 10
+   gh run watch --exit-status
+   ```
 
-## What to watch
+2. For EXE repos, the **Windows** jobs (e.g. App.Tests, Build release EXE) MUST pass. Ubuntu-only green is **not** enough.
+3. On red:
+   1. `gh run view <run-id> --log-failed` — find the first real error.
+   2. Cross-check `README.md`, `docs/**`, `AGENTS.md`, `CHANGELOG.md`, and shipped `.txt` specs **before** changing behavior. If the fix would contradict them, update the doc in the same change set or change the implementation.
+   3. Fix in repo, commit, push, watch again.
+4. Report run IDs and the final state in your handoff.
 
-Only runs **triggered by the latest push** on the **current branch**. Do not chase old SHAs or unrelated branches.
+## You MUST NOT
 
-```bash
-gh run list --branch "$(git rev-parse --abbrev-ref HEAD)" --limit 10
-gh run watch --exit-status
-```
-
-For exe repos, **Windows** jobs (e.g. App.Tests, Build release EXE) must pass — Ubuntu-only green is **not** enough.
-
-## If something is red
-
-1. `gh run view <run-id> --log-failed` — first real error.
-2. Fix in repo (code, tests, workflows) → commit → **push** → watch again.
-3. Loop: **push → wait → fix → push** until all triggered runs are green or a stop condition hits.
-
-## Fixes must not violate project docs
-
-Before applying a CI-driven fix, cross-check:
-
-- Root `README.md`, `docs/**/*.md`, `AGENTS.md`, `CHANGELOG.md`, and app-bundled `.txt` specs.
-- **Do not** change documented functionality or UI strings to satisfy a test unless you **also** update those docs in the same change set.
-- **Do not** weaken tests to greenwash behavior that docs promise to users.
-
-If CI and docs conflict, follow priority in `00-universal-core.mdc` (docs + user intent first, then deliberate code/doc alignment).
+- "Greenwash" by weakening a test or rewriting documented UI strings.
+- Make empty commits to retrigger CI when the cause is infra/secrets.
+- Loop forever — stop at the first matching condition below.
+- Chase old SHAs or unrelated branches.
 
 ## Stop conditions
 
-| Stop | Reason |
+| Stop | Action |
 |------|--------|
-| All triggered runs **success** | Report run IDs. |
-| Not fixable in repo | Secrets, billing, permissions — report; no empty commits. |
-| Same failure after **2** fix-and-push rounds | Escalate with logs. |
-| Required **Windows** job cannot run here | Report; do not claim full CI green. |
+| All triggered runs **success** | Report run IDs and the merged final state. |
+| Not fixable in repo (secrets / billing / permissions) | Report; do **not** make empty commits. |
+| Same failure after **2** fix-and-push rounds | Escalate with `gh run view --log-failed` excerpt. |
+| Required Windows job cannot run in this environment | Report; do **not** claim full CI green. |
 
-## Reference
-
-[`.cursor/skills/github-actions-ci/SKILL.md`](../skills/github-actions-ci/SKILL.md)
-
-If `gh` is unavailable, use run URL / GitHub API; same loop and stop rules.
+See `.cursor/skills/github-actions-ci/SKILL.md` for command-level details. If `gh` is unavailable, use the run URL / GitHub API with the same loop and stop rules.
