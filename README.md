@@ -1,6 +1,6 @@
 # cursor-universal-rule
 
-通用 Cursor **项目规则**包：新开仓库后安装到项目的 `.cursor/`，在 **本地 Desktop** 与 **Cloud Agent** 下共用同一套规则文件（文件中分「本地 / 云端」条款，而不是两套 Git 文件）。
+通用 Cursor **项目规则**包：把 `rules/` 和 `skills/` 复制到目标项目的 `.cursor/`，在 **本地 Desktop** 与 **Cloud Agent** 下共用同一套规则文件（文件中分「本地 / 云端」条款，而不是两套 Git 文件）。
 
 仓库：<https://github.com/wangyuanzhong/cursor-universal-rule>
 
@@ -92,7 +92,7 @@ Cursor **Rule 是约束 Agent 的说明书**，不会在保存文件时自动执
 - 本机 `git hook` / 文件监视脚本（真·自动打包）
 - GitHub Actions（云端真· CI）
 
-本包把「该做什么」写进 **alwaysApply 项目规则**，并配合 **skills** 与 **安装脚本**，尽量让 Agent **每次会话都看到同一标准**。若要「绝不漏打包」，请同时在项目里保留 `build-release.ps1` 等脚本，并按 README 启用 hook / 监视。
+本包把「该做什么」写进 **alwaysApply 项目规则**，并配合 **skills**（如 `github-actions-ci`），尽量让 Agent **每次会话都看到同一标准**。若要「绝不漏打包」，请同时在项目里保留 `build-release.ps1` 等脚本，并按 README 启用 hook / 监视。
 
 ## 安装到新项目
 
