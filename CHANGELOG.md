@@ -13,6 +13,27 @@ will be called out in `### Breaking`.
 
 (Pending changes; the next push will close this section into a dated entry.)
 
+## [0.4.1] - 2026-05-28
+
+CI deprecation warning fix.
+
+### Fixed
+- `.github/workflows/validate-rules-pack.yml` — set
+  `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"` at the workflow level so
+  `actions/checkout@v4` (and any other JavaScript action that still
+  declares `runs.using: node20`) runs on Node.js 24. GitHub forces the
+  Node.js 24 default on June 2, 2026; opting in early avoids the
+  workflow starting to warn or fail at the cutover.
+
+### Files / modules touched
+- `.github/workflows/validate-rules-pack.yml` — added top-level `env:`
+  block with `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"`.
+
+### Verify
+- `gh run view <id>` for the next CI run shows no
+  `Node.js 20 actions are deprecated` annotations.
+- All three jobs still green.
+
 ## [0.4.0] - 2026-05-28
 
 Adds a CI workflow that validates the rules pack itself, and documents

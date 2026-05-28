@@ -11,6 +11,12 @@ concurrency:
   group: validate-rules-pack-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # GitHub Actions forces JavaScript actions to Node.js 24 starting
+  # June 2, 2026; opt in early so the workflow does not start
+  # warning / breaking right at the cutover.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   rules-and-changelog:
     name: Rule frontmatter, cross-refs, CHANGELOG.md
