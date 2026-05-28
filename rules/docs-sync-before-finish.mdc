@@ -55,7 +55,7 @@ Do **not** skip files because they look "boring" (e.g. small READMEs in subfolde
 ### MUST NOT
 
 - Push or declare done with a known doc/code mismatch.
-- Update only `README.md` and ignore `docs/**` or shipped `.txt` specs.
+- Update only the most obvious doc (e.g. just the root introduction file) and silently leave other in-scope docs unread. The walk above must cover **every** project `.md` / `.txt` in scope, not just whichever file you opened first.
 - Use a single aggregate count like `Reviewed 12 docs, no edits needed` to skip enumeration. The required output below requires **every file** to be accounted for individually (or grouped only when all files in a group share the same status — see report format).
 
 ---
@@ -80,7 +80,7 @@ If any newly-appearing path matches a category below and is **not** already cove
 | Local-only Cursor state | `.cursor/agent-transcripts/`, `terminals/`, `.cursor/.local-auto-push` (the marker, not the rule) |
 | Secrets (see §3) | `.env*`, `*.pem`, `*.key`, `secrets.*`, `credentials*`, `id_rsa*` |
 
-Keep `.cursor/rules/`, `.cursor/skills/`, `.cursor/README.md` **tracked** (`git-track-cursor-folder.mdc`).
+Keep `.cursor/rules/` and `.cursor/skills/` **tracked** (`git-track-cursor-folder.mdc`). If the project also has its own `.cursor/README.md` describing the install, track that too — but it is not required.
 
 ---
 
@@ -158,7 +158,19 @@ Output a `Docs review:` section that accounts for **every** project `.md` and `.
 - `checked: ok` — file was read; nothing in it conflicts with this change set.
 - `skipped: <reason>` — explicit excluded path (e.g. `vendored upstream`, `large model artifact`, or scope exclusions listed earlier in this rule).
 
-Format:
+Format (filenames in the example below are illustrative — list whatever your project actually ships; see `00-universal-core.mdc` "Project documentation"):
+
+```
+Docs review:
+- <root-readme>.md — edited: <one-line summary>
+- CHANGELOG.md — edited: appended [X.Y.Z] entry
+- docs/<some-spec>.md — checked: ok (no relevant change in this task)
+- docs/<subdir>/ (N files) — checked: ok (group; same status applies to all)
+- <vendored-or-skipped-path>/** (N files) — skipped: <reason>
+Total: M files reviewed, A edited, B ok, C skipped
+```
+
+A concrete worked example for a real change:
 
 ```
 Docs review:

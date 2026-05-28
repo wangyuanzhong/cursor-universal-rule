@@ -35,9 +35,13 @@ MODE: ambiguous     (any mixed signals — STOP and ask the user; do NOT default
 
 2. If any item is `blocked`, stop and tell the user — do not push past it.
 
+## "Project documentation" — what this term means
+
+Whenever this summary or the project rules say **the project's documentation**, it means the `**/*.md` and `**/*.txt` files the project itself ships (excluding `node_modules/`, `dist/`, `bin/`, `obj/`, `.git/`, `vendor/`, large `models/`, vendored `skills/upstream/**`, gitignored paths). **Discover them** by walking the repo; do not assume specific filenames. Different projects use different conventions — root introduction file (`README.md`, `INTRODUCTION.md`, non-English equivalents, or none), `docs/`/`documentation/`/`spec/` subtrees, `AGENTS.md`/`CONTRIBUTING.md` etc. The only file pinned by name is `CHANGELOG.md` (per the versioning rule). When several docs disagree on the same topic, prefer the one closer to the project root and to the user-facing surface.
+
 ## Conflict priority (when code, docs, tests, CI disagree)
 
-1. Product truth in `README.md`, `docs/**/*.md`, `AGENTS.md`, `CHANGELOG.md`, shipped `.txt` specs.
+1. Product truth in **the project's documentation** (defined above), including `CHANGELOG.md`. Discover what the project ships; do not assume specific filenames.
 2. Explicit user messages in this conversation.
 3. Implementation code (update code **or** docs deliberately).
 4. CI / workflow YAML (must reflect 1 + 3).

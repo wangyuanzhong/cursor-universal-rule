@@ -147,7 +147,7 @@ If a single push contains multiple commits of mixed type, the bump matches the *
 
 ## Language
 
-Write CHANGELOG entries and commit bodies in the **same language as the project's main `README.md`**. Do not mix languages within an entry. Conventional Commits keywords (`feat`, `fix`, etc.) stay in English regardless.
+Write CHANGELOG entries and commit bodies in the **same language as the project's primary user-facing documentation** (whatever the project's introduction / overview doc is called — see `00-universal-core.mdc` "Project documentation"). Do not mix languages within an entry. If the project has no clear primary doc, default to the language of the user's most recent message in this conversation. Conventional Commits keywords (`feat`, `fix`, etc.) stay in English regardless.
 
 ## Tagging
 

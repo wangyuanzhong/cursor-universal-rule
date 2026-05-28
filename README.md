@@ -68,7 +68,7 @@ git commit -m "chore(cursor): enable local auto-push for current branch"
 - 每个 entry 包含：一段总结、`### Added/Changed/Fixed/Removed/Breaking`、`### Files / modules touched`、`### Verify`，详细到能让 handoff 的另一个 agent 不读 diff 就能理解这次改动。
 - 自动同步 `package.json#version`、`Cargo.toml#package.version`、`pyproject.toml`、`*.csproj#Version`、仓库根 `VERSION`（哪个存在就同步哪个）。
 - commit message 用 [Conventional Commits](https://www.conventionalcommits.org)：`<type>(<scope>): <subject>`，type ∈ `{feat, fix, docs, refactor, test, chore, build, ci, perf, revert}`。type → bump：`feat`=MINOR；`fix`/`perf`=PATCH；其它=PATCH；footer 含 `BREAKING CHANGE:` → MAJOR。
-- entry 用项目 `README.md` 的主语言。
+- entry 用**项目主用户文档**的语言（项目根那个介绍/概览文件，不论它叫什么——本规则不假设具体文件名）。如果项目没有明确的主文档，回退到本次对话里你最近一条消息的语言。
 
 仓库初始化用 `templates/CHANGELOG-initial.md` 作起点。
 

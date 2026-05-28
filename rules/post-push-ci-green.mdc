@@ -52,7 +52,7 @@ This is a backstop: even if the sub-agent silently violated a rule, the parent c
 2. For EXE repos, the **Windows** jobs (e.g. App.Tests, Build release EXE) MUST pass. Ubuntu-only green is **not** enough.
 3. On red:
    1. `gh run view <run-id> --log-failed` — find the first real error.
-   2. Cross-check `README.md`, `docs/**`, `AGENTS.md`, `CHANGELOG.md`, and shipped `.txt` specs **before** changing behavior. If the fix would contradict them, update the doc in the same change set or change the implementation.
+   2. Cross-check **the project's documentation** (per `00-universal-core.mdc` "Project documentation — what this term means" — discover what the project actually ships, do not assume filenames) **before** changing behavior. If the fix would contradict any documented behavior, update the doc in the same change set or change the implementation.
    3. Fix in repo. Commit using the Conventional Commits convention required by `versioning-and-changelog.mdc`. CI fixes use `fix(ci): <reason>` so they are visually distinguishable from product fixes in `CHANGELOG.md`.
    4. Push, watch again.
 4. Report run IDs and the final state in your handoff.

@@ -49,4 +49,4 @@ You cannot run a Windows desktop `.exe` here. Therefore:
 
 - Skip the build because "the change was just a merge" if `src/` or `ui/` actually changed on disk.
 - Mark cloud work done when only Ubuntu jobs are green and the Windows EXE job is missing or red.
-- Change the `.exe` output path, WebView2/wwwroot layout, or `models/` paths without updating `README.md` / `docs/**` in the same task (see `docs-sync-before-finish.mdc`).
+- Change the `.exe` output path, WebView2/wwwroot layout, or `models/` paths without updating **the project's documentation** in the same task (per `00-universal-core.mdc` "Project documentation" and `docs-sync-before-finish.mdc`). Whatever the project calls its install/run instructions doc, update it.

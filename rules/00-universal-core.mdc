@@ -27,11 +27,26 @@ You are in `MODE: Local` only if **none** of the Cloud signals fire and your wor
 
 If signals are mixed (e.g. WSL on a developer machine: Linux uname but home-dir cwd) declare `MODE: ambiguous — blocking`, **stop, and ask the user**. Do **not** default to Local.
 
+## "Project documentation" — what this term means
+
+When any rule in this pack says **the project's documentation**, it means the set of `**/*.md` and `**/*.txt` files the project itself ships under the standard scope of `docs-sync-before-finish.mdc` (i.e. excluding `node_modules/`, `dist/`, `bin/`, `obj/`, `.git/`, `vendor/`, large `models/`, vendored `skills/upstream/**`, and any path covered by the project's `.gitignore`).
+
+**Discover** this set by reading the repo. Do **not** assume any particular filename exists or is called any particular thing. Different projects use different conventions — examples you may or may not encounter:
+
+- a root introduction file named `README.md`, `INTRODUCTION.md`, `Readme`, or a non-English equivalent (or none at all);
+- a `docs/`, `documentation/`, `wiki/`, or `spec/` subtree;
+- agent-facing instructions in `AGENTS.md`, `AGENT.md`, `CONTRIBUTING.md`, `.cursor/README.md`, or nowhere;
+- internal specs as `.txt` files anywhere in the repo.
+
+The **only** file this rules pack itself pins by name is `CHANGELOG.md` (per `versioning-and-changelog.mdc`). Everywhere else, names are project-defined and must be discovered by walking the repo, not assumed.
+
+When several docs cover the same topic and disagree, prefer the one closer to the project root and to the user-facing surface (a top-level introduction usually beats an internal note; an explicit user-facing spec usually beats a contributor guide).
+
 ## You MUST
 
 1. **Run the Done check below** before you (a) tell the user the task is done, or (b) open / update a PR. Output the checklist verbatim with each item marked `done`, `N/A: <reason>`, or `blocked: <reason>`.
 2. **Resolve conflicts** between code, docs, tests, and CI in this order — and never silently diverge:
-   1. Product truth in `README.md`, `docs/**/*.md`, `AGENTS.md`, `CHANGELOG.md`, and any `.txt` spec shipped with the app.
+   1. Product truth in **the project's documentation** (defined above) — including `CHANGELOG.md`. Discover what the project ships; do not assume specific filenames.
    2. Explicit user messages in **this** conversation.
    3. Implementation code (update code **or** docs deliberately, in the same change set).
    4. CI / workflow YAML (must reflect 1 + 3).
