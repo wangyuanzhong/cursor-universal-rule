@@ -1,0 +1,61 @@
+name: Validate rules pack
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-rules-pack-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rules-and-changelog:
+    name: Rule frontmatter, cross-refs, CHANGELOG.md
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run validate.py
+        run: python3 .github/scripts/validate.py
+
+  powershell-syntax:
+    name: PowerShell syntax (install-universal-rules.ps1)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse install-universal-rules.ps1
+        shell: pwsh
+        run: |
+          $script = Get-Content -Raw scripts/install-universal-rules.ps1
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseInput(
+            $script, [ref]$null, [ref]$errors)
+          if ($errors -and $errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+          Write-Host "PowerShell syntax OK"
+
+  templates:
+    name: Templates exist and are readable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check expected templates
+        run: |
+          set -euo pipefail
+          for f in \
+            templates/CHANGELOG-initial.md \
+            templates/local-auto-push-marker.md \
+            templates/github-workflow-build-release-exe.yml; do
+            if [ ! -s "$f" ]; then
+              echo "MISSING or EMPTY: $f" >&2
+              exit 1
+            fi
+            echo "ok: $f"
+          done

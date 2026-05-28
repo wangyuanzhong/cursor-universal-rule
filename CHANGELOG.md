@@ -13,6 +13,62 @@ will be called out in `### Breaking`.
 
 (Pending changes; the next push will close this section into a dated entry.)
 
+## [0.4.0] - 2026-05-28
+
+Adds a CI workflow that validates the rules pack itself, and documents
+how to start versioning when the rules are added to a project that
+already has commits.
+
+### Added
+- `.github/workflows/validate-rules-pack.yml` — three jobs:
+  1. `rules-and-changelog` — runs `.github/scripts/validate.py` to check
+     every `rules/*.mdc` has valid frontmatter (non-empty `description:`,
+     `alwaysApply` is boolean if present, at least one of `alwaysApply`
+     or `globs` is set, non-empty body) and that any cross-reference of
+     shape `<name>.mdc` inside a rule body resolves to a real file in
+     `rules/`. Also checks `CHANGELOG.md` starts with `# Changelog`, has
+     an `## [Unreleased]` section, and has at least one dated
+     `## [X.Y.Z] - YYYY-MM-DD` entry with valid SemVer.
+  2. `powershell-syntax` — parses `scripts/install-universal-rules.ps1`
+     with `[System.Management.Automation.Language.Parser]` to catch
+     syntax errors without running the script.
+  3. `templates` — confirms each shipped template file exists and is
+     non-empty.
+- `.github/scripts/validate.py` — pure-stdlib Python validator used by
+  the workflow. Importable / runnable locally with `python3
+  .github/scripts/validate.py` for fast feedback before push.
+- `rules/versioning-and-changelog.mdc` — new "Joining mid-project"
+  subsection. When the rule is added to an existing repo, the starting
+  version is inferred in priority order: language metadata
+  (`package.json`/`Cargo.toml`/`pyproject.toml`/`*.csproj`), then a
+  repo-root `VERSION` file, then the latest `v?X.Y.Z` git tag, then a
+  SemVer-shaped string in any pre-existing `CHANGELOG.md`, then a
+  hidden `0.0.0` baseline that bumps to `0.1.0` on first push.
+  Retroactive entries are explicitly forbidden — the changelog starts
+  from this push forward; pre-existing changelogs in other formats are
+  preserved untouched below the new Keep a Changelog header.
+
+### Changed
+- `CHANGELOG.md` `[0.1.0]` entry now uses the actual initial commit date
+  (`2026-05-28`) instead of a year-only approximation, so all entries
+  conform to the validator's `YYYY-MM-DD` requirement.
+
+### Files / modules touched
+- `.github/workflows/validate-rules-pack.yml` — new file.
+- `.github/scripts/validate.py` — new file.
+- `rules/versioning-and-changelog.mdc` — new "Joining mid-project"
+  section under Initialization, with worked example.
+- `CHANGELOG.md` — fix `[0.1.0]` date format; this entry.
+
+### Verify
+- `python3 .github/scripts/validate.py` exits 0 with `All checks passed.`
+- After this push, the GitHub Actions run on the branch reaches
+  success across all three jobs (`rules-and-changelog`,
+  `powershell-syntax`, `templates`).
+- `rules/versioning-and-changelog.mdc` contains a section
+  "Joining mid-project" and a "Joining mid-project — example" with a
+  worked example showing `package.json` 2.5.3 → 2.5.4.
+
 ## [0.3.0] - 2026-05-28
 
 Second iteration of the rule rewrite. Adds two new universal rules
@@ -141,7 +197,7 @@ every task.
 - `00-universal-core.mdc` contains a `Done check` block the agent is
   expected to output verbatim.
 
-## [0.1.0] - 2025
+## [0.1.0] - 2026-05-28
 
 Initial publish: five universal rules (`00-universal-core`,
 `docs-sync-before-finish`, `exe-packaging-local-cloud`,
