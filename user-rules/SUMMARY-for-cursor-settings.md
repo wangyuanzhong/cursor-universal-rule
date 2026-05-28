@@ -6,23 +6,33 @@ Optional supplement to **project** rules installed from [cursor-universal-rule](
 
 Treat the items below as a **hard contract**. Do not paraphrase into softer commitments.
 
+## Mode detection — declare once per task
+
+Write one line into your plan before any state-changing tool call:
+
+```
+MODE: Cloud         (system prompt mentions "running as a CLOUD AGENT" or has a <cloud_task_instructions> block; OR Linux + cwd /workspace or /home/ubuntu/...; OR CI=true; OR .cursor/cloud-agent-marker exists)
+MODE: Local         (none of the above + dev-home cwd)
+MODE: ambiguous     (any mixed signals — STOP and ask the user; do NOT default to Local)
+```
+
 ## Every task — MUST
 
-1. State `MODE: Local` or `MODE: Cloud` in your plan, once per task.
-   - Cloud = Cursor Cloud Agent or any remote/Linux agent without the project's native desktop toolchain.
-   - Local = Cursor Desktop on the dev machine with full repo checkout.
-2. Before declaring done or opening/updating a PR, output this Done check verbatim with `done`, `N/A: <reason>`, or `blocked: <reason>` per item:
+1. Output the Done check verbatim at end of task with `done` / `N/A: <reason>` / `blocked: <reason>` per item:
 
    ```
    [ ] MODE declared
    [ ] Code/build matches user intent; tests pass
    [ ] All project **/*.md and **/*.txt reviewed and updated as needed
-   [ ] EXE packaging (Local build OR Cloud Windows CI) — or N/A
+   [ ] .gitignore reviewed (no stray secrets, build outputs, transient logs)
+   [ ] EXE packaging satisfied — or N/A
    [ ] .cursor/ tracked in git (only if commit/push happened)
-   [ ] CI watched and green (only if push happened, not opted out)
+   [ ] CHANGELOG.md entry + version bump (only if files changed)
+   [ ] Local auto-push satisfied — or N/A
+   [ ] CI watched and green (only if push happened) — no Local opt-out
    ```
 
-3. If any item is `blocked`, stop and tell the user — do not push past it.
+2. If any item is `blocked`, stop and tell the user — do not push past it.
 
 ## Conflict priority (when code, docs, tests, CI disagree)
 
@@ -33,19 +43,57 @@ Treat the items below as a **hard contract**. Do not paraphrase into softer comm
 
 Never weaken docs, tests, or documented UI strings just to make CI green.
 
+## Secret-leak hard stop
+
+Before any commit, scan paths that would be staged. If a likely-secret file (`.env*` other than `.env.example/sample/template`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `id_rsa*`, `id_ed25519*`, `secrets.*`, `credentials*`, `*.kdbx`, `aws_credentials`, `gcp/azure-credentials*.json`, `service-account*.json`) is **not** gitignored, **stop the task** and report. Do not auto-add to `.gitignore` and continue — the user must decide.
+
+## Sub-agent commit/push policy
+
+- **Scenario A** (sub-agent in an isolated worktree, e.g. `best-of-n-runner`, or different `git rev-parse --git-dir`): MAY commit and push its own branch; maintains its own `CHANGELOG.md` entries.
+- **Scenario B** (sub-agent shares the parent's workspace, e.g. `generalPurpose`, `explore`): MUST NOT commit/push/`git add`. Top-level agent does the single commit + push.
+
+If unsure, treat as Scenario B.
+
 ## EXE / desktop repos
 
 - Trigger: any of `scripts/build-release.ps1`, `scripts/watch-build-release.ps1`, `scripts/build_exe.ps1`, `scripts/pack-ready.ps1`, `scripts/ci_and_build.ps1`, or a `.csproj` shipping a desktop `.exe`.
 - **Local** after `src/`/`ui/`/packaging changes: run `.\scripts\watch-build-release.ps1 -Once` (or fallback). Report `.exe` full path + LastWriteTime.
 - **Cloud**: ensure `.github/workflows/` has a `windows-latest` workflow that builds the release `.exe`, then verify it goes green after push.
 
-## After push (default on Cloud)
+## Local auto-push (opt-in per repo)
 
-Watch only runs triggered by the latest push on the current branch (`gh run list --branch ... --limit 10`, `gh run watch --exit-status`). Fix red, push, watch again. Stop after 2 identical failures and escalate. **Local opt-out**: presence of `.cursor/.local-skip-post-push-ci` skips the watch only on Local.
+Active only in `MODE: Local` **and** `.cursor/.local-auto-push` exists at the repo root.
 
-## Before push or task end
+When active, after any reply that modified at least one project file (excluding `.cursor/agent-transcripts/**`, `terminals/**`, gitignored paths):
 
-Walk **all** project `**/*.md` and `**/*.txt` (excluding `node_modules/`, `dist/`, `bin/`, `obj/`, `.git/`, `vendor/`, large `models/`). Update anything that drifted vs. your changes. Report edited files or `Reviewed N docs, no edits needed`.
+1. Run pre-push hygiene (docs sync, `.gitignore` review, secret-leak scan).
+2. Bump SemVer + write a `CHANGELOG.md` entry (see below).
+3. `git add -A`, commit with Conventional Commits, `git push origin HEAD` (or `git push -u origin HEAD` if no upstream).
+4. Watch CI to green.
+
+Hard stops (no push, report and wait): detached HEAD, in-progress merge/rebase, secret-leak detected, non-fast-forward not cleanly resolvable, push rejected by branch protection. Never `--force` or `--force-with-lease`.
+
+## After push (always — Cloud or Local)
+
+Watch only runs triggered by the latest push on the current branch (`gh run list --branch ... --limit 10`, `gh run watch --exit-status`). Fix red, push, watch again. Stop after 2 identical failures and escalate. **There is no Local opt-out.** (Older versions of this pack honored `.cursor/.local-skip-post-push-ci`; that file is now ignored.)
+
+## Versioning and changelog (every push)
+
+- `CHANGELOG.md` at repo root, [Keep a Changelog](https://keepachangelog.com) format, [SemVer](https://semver.org).
+- Default bump = `PATCH`. `MINOR` for new features. `MAJOR` for breaking changes (require a `Bump reason:` line).
+- Each entry must be detailed enough for a handoff agent to understand without reading the diff: summary, `### Added/Changed/Fixed/Removed/Breaking`, `### Files / modules touched`, `### Verify`.
+- Banned content: "updated some files", "various improvements", empty subsections, multiple pushes merged into one entry.
+- Sync any of these if present: `package.json#version`, `Cargo.toml#package.version`, `pyproject.toml`, `*.csproj#Version`, repo-root `VERSION`.
+- Commit messages use [Conventional Commits](https://www.conventionalcommits.org). Type→bump: `feat` = MINOR; `fix`/`perf` = PATCH; `docs`/`refactor`/`test`/`chore`/`build`/`ci` = PATCH; any commit with `BREAKING CHANGE:` footer = MAJOR.
+- Write entries in the same language as the project's `README.md`. Don't auto-create git tags.
+
+## Pre-push hygiene (`.md`, `.txt`, `.gitignore`)
+
+Walk **all** project `**/*.md` and `**/*.txt` (excluding `node_modules/`, `dist/`, `bin/`, `obj/`, `.git/`, `vendor/`, large `models/`). Update anything that drifted vs. your changes.
+
+Also review `.gitignore`: build outputs, dependency caches, editor/OS junk, transient logs, local-only Cursor state, secret patterns must be ignored.
+
+Report edited files or `Reviewed N docs, no edits needed`, plus `.gitignore: <unchanged | updated to add: <patterns>>`.
 
 ## Git
 

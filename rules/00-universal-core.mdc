@@ -7,19 +7,35 @@ alwaysApply: true
 
 These rules are a **hard contract**, not advice. If a rule conflicts with your default behavior, the rule wins. Do not paraphrase rules into softer commitments.
 
+## Mode detection (run exactly once per task, before any non-trivial action)
+
+Write one of these lines into your plan **before any tool call that mutates state**:
+
+```
+MODE: Cloud
+MODE: Local
+MODE: ambiguous — blocking
+```
+
+You are in `MODE: Cloud` if **any** of these signals is true:
+
+1. The system prompt you are reading right now contains a `<cloud_task_instructions>` block, or the literal phrase `running as a CLOUD AGENT`.
+2. `uname -s` returns `Linux` **and** `pwd` starts with `/workspace` or `/home/ubuntu/`.
+3. Env `CI=true`, **or** the file `.cursor/cloud-agent-marker` exists at the repo root.
+
+You are in `MODE: Local` only if **none** of the Cloud signals fire and your working tree is in a typical developer-home location (`C:\Users\...`, `/Users/...`, `/home/<dev>/...` with no `/workspace` prefix).
+
+If signals are mixed (e.g. WSL on a developer machine: Linux uname but home-dir cwd) declare `MODE: ambiguous — blocking`, **stop, and ask the user**. Do **not** default to Local.
+
 ## You MUST
 
-1. **Declare mode in your plan**, before any non-trivial action, in one line:
-   - `MODE: Local` — Cursor Desktop on the developer machine with full repo checkout.
-   - `MODE: Cloud` — Cursor Cloud Agent, or any Linux/remote agent without the project's native desktop toolchain, or `CI=true` on a push-monitoring task.
-   Detect once per task; do not switch silently.
-2. **Run the Done check below** before you (a) tell the user the task is done, or (b) open / update a PR. Output the checklist verbatim with each item marked `done`, `N/A: <reason>`, or `blocked: <reason>`.
-3. **Resolve conflicts** between code, docs, tests, and CI in this order — and never silently diverge:
+1. **Run the Done check below** before you (a) tell the user the task is done, or (b) open / update a PR. Output the checklist verbatim with each item marked `done`, `N/A: <reason>`, or `blocked: <reason>`.
+2. **Resolve conflicts** between code, docs, tests, and CI in this order — and never silently diverge:
    1. Product truth in `README.md`, `docs/**/*.md`, `AGENTS.md`, `CHANGELOG.md`, and any `.txt` spec shipped with the app.
    2. Explicit user messages in **this** conversation.
    3. Implementation code (update code **or** docs deliberately, in the same change set).
    4. CI / workflow YAML (must reflect 1 + 3).
-4. **Execute the work yourself.** Rules do not run shell commands. Builds, tests, `gh`, and edits only happen because *you* do them. Never claim a step was done without doing it.
+3. **Execute the work yourself.** Rules do not run shell commands. Builds, tests, `gh`, and edits only happen because *you* do them. Never claim a step was done without doing it.
 
 ## You MUST NOT
 
@@ -28,15 +44,34 @@ These rules are a **hard contract**, not advice. If a rule conflicts with your d
 - Silently skip a rule. If you skip, name the rule and the reason in your final message.
 - Weaken docs, tests, or documented UI strings just to make CI green. If a CI fix would violate priority 1 or 2 above, change the implementation **or** update the doc in the same change set.
 
+## Sub-agent commit/push policy
+
+A "sub-agent" is anything you spawn via the Task tool (or equivalent). Two scenarios:
+
+- **Scenario A — worktree-isolated sub-agent.** Identified by **either**:
+  - Sub-agent type is `best-of-n-runner` (or any other "isolated git worktree" runner), **or**
+  - The sub-agent's `git rev-parse --git-dir` differs from yours, indicating an independent worktree / branch.
+
+  In Scenario A the sub-agent **MAY** commit and push to its own branch. It is responsible for its own `CHANGELOG.md` entry per `versioning-and-changelog.mdc`. The top-level agent later reconciles entries when merging.
+
+- **Scenario B — shared-workspace sub-agent.** Default for `generalPurpose`, `explore`, etc.
+
+  In Scenario B the sub-agent **MUST NOT** `git commit`, `git push`, or stage with `git add`. It leaves modifications in the working tree. The top-level agent does the single commit + push at the end of its own reply.
+
+If you cannot tell which scenario applies, treat it as Scenario B.
+
 ## Done check (output this list at end of every task)
 
 ```
-[ ] MODE declared (Local | Cloud)
+[ ] MODE declared (Local | Cloud | ambiguous)
 [ ] Code/build matches user intent; available tests pass
 [ ] Docs synced per docs-sync-before-finish.mdc (list edited files OR "reviewed N, no edits needed")
+[ ] .gitignore reviewed and updated per docs-sync-before-finish.mdc (no stray secrets, build outputs, transient logs)
 [ ] EXE packaging satisfied per exe-packaging-local-cloud.mdc (or N/A with reason)
 [ ] .cursor/ tracked per git-track-cursor-folder.mdc (only if a commit/push happened)
-[ ] CI watched and green per post-push-ci-green.mdc (only if a push happened and not opted out)
+[ ] CHANGELOG.md entry + version bump per versioning-and-changelog.mdc (only if files changed)
+[ ] Local auto-push satisfied per local-auto-push-current-branch.mdc (or N/A: not Local, or no marker file)
+[ ] CI watched and green per post-push-ci-green.mdc (only if a push happened)
 ```
 
 If any item is `blocked`, **stop and tell the user** — do not push past it.

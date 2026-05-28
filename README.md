@@ -9,10 +9,12 @@
 | # | 能力 | 规则文件 |
 |---|------|----------|
 | 1 | EXE 项目：本地自动打包；云端 CI 必须含 release exe 构建 | `exe-packaging-local-cloud.mdc` |
-| 2 | 云端：push 后盯 GitHub Actions，红则修到绿；修复不得与上下文及项目内 `.md`/`.txt` 中的功能/UI 定义冲突 | `post-push-ci-green.mdc` |
-| 3 | 改动结束前（push 前，或无 push 要求则任务结束前）：遍历并升级项目内 `.md`/`.txt`，与代码一致 | `docs-sync-before-finish.mdc` |
+| 2 | push 后（云/本地都要）盯 GitHub Actions 直到绿；修复不得违反项目内 `.md`/`.txt` 中的功能/UI 定义 | `post-push-ci-green.mdc` |
+| 3 | 改动结束前（push 前，或无 push 要求则任务结束前）：遍历并升级项目内 `.md`/`.txt`、维护 `.gitignore`、扫描密钥泄漏 | `docs-sync-before-finish.mdc` |
 | 4 | `.gitignore` 不得阻止 `.cursor/` 进 Git | `git-track-cursor-folder.mdc` |
-| — | 总纲：模式声明、Done check、冲突优先级 | `00-universal-core.mdc` |
+| 5 | 本地：每次完整回复改了文件就自动 commit + push 到当前分支（仓库 opt-in） | `local-auto-push-current-branch.mdc` |
+| 6 | 每次 push 都 bump SemVer + 写详细 `CHANGELOG.md` entry；commit 用 Conventional Commits | `versioning-and-changelog.mdc` |
+| — | 总纲：模式声明、Done check、冲突优先级、子 agent push 策略 | `00-universal-core.mdc` |
 
 ## 规则风格（v2）
 
@@ -23,10 +25,65 @@
 - **You MUST NOT** — 明确的负面清单。
 - **Required output / Stop conditions** — 任务结束时必须输出哪些信息、何时停止重试。
 
-`00-universal-core.mdc` 额外要求 Agent：
+`00-universal-core.mdc` 还要求 Agent：
 
-1. 在计划中写一行 `MODE: Local` 或 `MODE: Cloud`，单次任务只判定一次。
+1. 在计划中写一行 `MODE: Local` / `MODE: Cloud` / `MODE: ambiguous — blocking`，单次任务只判定一次；判定算法见该文件。
 2. 在最终消息里**逐项打勾输出 Done check**（`done` / `N/A: <reason>` / `blocked: <reason>`），任何 `blocked` 必须停下来报给用户，不得越过。
+
+## 模式判定（Cloud vs Local）
+
+`00-universal-core.mdc` 给出确定性算法（任一命中即 Cloud）：
+
+1. 系统 prompt 里出现 `<cloud_task_instructions>` 块，或字面 `running as a CLOUD AGENT`。这是 Cursor Cloud Agent 平台注入的、Local Desktop 永远不会出现的 marker。
+2. `uname -s = Linux` 且 `pwd` 以 `/workspace` 或 `/home/ubuntu/` 开头。
+3. 环境变量 `CI=true`，或仓库根存在 `.cursor/cloud-agent-marker`。
+
+都不命中且 cwd 在开发者家目录 → `MODE: Local`。出现矛盾信号（典型：WSL 上的 Local 开发）→ `MODE: ambiguous — blocking`，停下来问用户，**禁止默认 Local**。
+
+## 本地自动 push（opt-in）
+
+`local-auto-push-current-branch.mdc` 默认**不启用**。要让 Agent 在每次完整回复改了项目文件后自动 commit + push 到当前分支，在仓库根做一次：
+
+```bash
+mkdir -p .cursor && touch .cursor/.local-auto-push
+git add .cursor/.local-auto-push
+git commit -m "chore(cursor): enable local auto-push for current branch"
+```
+
+启用后规则强制：
+
+- 推**当前分支**到对应远端分支，永远不直推 main（除非你本来就在 main 上）。
+- 必须先过 pre-push hygiene（文档同步、`.gitignore` 检查、密钥扫描）和版本号 bump（见下）。
+- 推完必须盯 CI 到绿（无 Local opt-out）。
+- 永不 `--force` / `--force-with-lease`；非 fast-forward / 检测到密钥 / detached HEAD / 进行中的 merge-rebase → 一律停下报你。
+
+详见 `templates/local-auto-push-marker.md`。
+
+## 版本号 + CHANGELOG（每次 push）
+
+`versioning-and-changelog.mdc` 强制：
+
+- 仓库根 `CHANGELOG.md`，[Keep a Changelog](https://keepachangelog.com) 格式 + [SemVer](https://semver.org)。
+- 默认 bump = `PATCH`。`MINOR` 用于新增功能，`MAJOR` 用于破坏性变更（必须写 `Bump reason:`）。
+- 每个 entry 包含：一段总结、`### Added/Changed/Fixed/Removed/Breaking`、`### Files / modules touched`、`### Verify`，详细到能让 handoff 的另一个 agent 不读 diff 就能理解这次改动。
+- 自动同步 `package.json#version`、`Cargo.toml#package.version`、`pyproject.toml`、`*.csproj#Version`、仓库根 `VERSION`（哪个存在就同步哪个）。
+- commit message 用 [Conventional Commits](https://www.conventionalcommits.org)：`<type>(<scope>): <subject>`，type ∈ `{feat, fix, docs, refactor, test, chore, build, ci, perf, revert}`。type → bump：`feat`=MINOR；`fix`/`perf`=PATCH；其它=PATCH；footer 含 `BREAKING CHANGE:` → MAJOR。
+- entry 用项目 `README.md` 的主语言。
+
+仓库初始化用 `templates/CHANGELOG-initial.md` 作起点。
+
+## 子 agent 是否可以 push
+
+`00-universal-core.mdc` 区分两种场景：
+
+- **Scenario A — 隔离 worktree 的子 agent**（`best-of-n-runner`，或子 agent 的 `git rev-parse --git-dir` 与顶层不同）：可以 commit + push 自己的分支，自己维护 CHANGELOG entry。顶层 agent 在合并时再去重 / 整合。
+- **Scenario B — 与顶层共享工作区的子 agent**（默认的 `generalPurpose`/`explore`）：**禁止** `git add`/`git commit`/`git push`。改动留在工作区，由顶层 agent 在自己回复结束时统一 commit + push。
+
+无法判断时按 Scenario B。
+
+## CI watch 不再可关闭
+
+旧版规则曾允许在仓库里放 `.cursor/.local-skip-post-push-ci` 让 Local 跳过盯 CI。**新版完全废除该开关**。如果你的仓库还有这个文件，可以删掉，规则不再读它。理由：本地 auto-push 启用后再让 CI 不盯，会让 main / 工作分支静悄悄地红着，得不偿失。
 
 ## 重要说明（必读）
 
@@ -65,23 +122,21 @@ git clone https://github.com/wangyuanzhong/cursor-universal-rule.git $env:TEMP\c
 - `.cursor/README.md` — 说明
 - 若 `.gitignore` 忽略了 `.cursor/`，脚本会尝试移除整目录忽略（保留 `agent-transcripts/` 等常见例外）
 
-## 本地不想启用「push 后盯 CI」
+可选附加（不会自动放到目标仓库，按需手工复制）：
 
-默认 **云端** 执行 `post-push-ci-green.mdc`；**本地 Desktop** 若不想盯 Actions：
-
-```powershell
-New-Item -ItemType File -Path .cursor\.local-skip-post-push-ci -Force
-```
-
-或在已安装 ASR 类仓库使用：`scripts/cursor-local-opt-out-post-push-ci.ps1`（若项目自带）。
+- `templates/CHANGELOG-initial.md` → 仓库根 `CHANGELOG.md`（首次启用版本号管理时）
+- `templates/github-workflow-build-release-exe.yml` → `.github/workflows/build-release-exe.yml`（EXE 项目）
+- `templates/local-auto-push-marker.md` → 本地 auto-push 启用方法说明
 
 ## 目录结构
 
 ```
 cursor-universal-rule/
 ├── README.md
+├── CHANGELOG.md                    # 本仓库的版本历史（按 versioning-and-changelog.mdc 维护）
 ├── rules/                          # 源规则（安装时复制到项目的 .cursor/rules/）
 ├── skills/github-actions-ci/
+├── templates/                      # 可选模板（CHANGELOG / CI workflow / 启用说明）
 ├── user-rules/                     # 可选：粘贴到 Cursor User Rules 的摘要
 └── scripts/
     └── install-universal-rules.ps1

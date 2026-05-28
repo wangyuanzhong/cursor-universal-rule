@@ -1,9 +1,15 @@
 ---
-description: Before push or declaring done — sync every project .md and .txt with the change set.
+description: Before push or declaring done — sync every project .md/.txt, the .gitignore, and scan for secret leaks.
 alwaysApply: true
 ---
 
-# Docs sync (mandatory)
+# Pre-push hygiene (mandatory)
+
+This rule covers three things you must do before any `git push` or before declaring a task done:
+
+1. **Project documentation** is consistent with the changes (`.md`, `.txt`).
+2. **`.gitignore`** correctly excludes things that must not be tracked.
+3. **No secret-shaped file** is about to land in the commit.
 
 ## When this rule fires
 
@@ -11,11 +17,15 @@ Run it **before** any of:
 
 - `git push`
 - Telling the user the task is finished (no push in scope)
-- Marking the task complete in a Done check
+- Marking the task complete in the Done check
 
 Also run it after any substantive code / config / UI change, even if the user only asked for a small fix.
 
-## Scope
+---
+
+## 1. Documentation sync — MUST
+
+### Scope
 
 Walk the repo and review **all** `**/*.md` and `**/*.txt`.
 
@@ -26,28 +36,76 @@ Skip only these (unless the user explicitly included them):
 
 Do **not** skip files because they look "boring" (e.g. small READMEs in subfolders, `scripts/*.txt`).
 
-## What to verify per file
+### What to verify per file
 
 1. Commands, paths, version numbers, and feature lists still match the code you just changed.
 2. UI / route / tray / CLI descriptions match current behavior.
 3. New options, env vars, breaking changes are documented.
 4. Cross-links resolve to existing files.
 
-## You MUST
+### What to do
 
 - Update stale sections in **this same task**. Match the file's existing language and tone.
-- Add a `CHANGELOG.md` entry whenever user-visible behavior changed.
+- Add a `CHANGELOG.md` entry per `versioning-and-changelog.mdc` whenever any file changed.
 - Fix the **code** when docs reflect intended product but code drifted.
 - Fix the **docs** when code is correct and docs are stale.
 
-## You MUST NOT
+### MUST NOT
 
 - Push or declare done with a known doc/code mismatch.
 - Update only `README.md` and ignore `docs/**` or shipped `.txt` specs.
 
+---
+
+## 2. `.gitignore` review — MUST
+
+Before staging changes, scan the working tree for paths that should not be tracked:
+
+```bash
+git status --porcelain
+git ls-files --others --exclude-standard
+```
+
+If any newly-appearing path matches a category below and is **not** already covered by `.gitignore`, **add the appropriate pattern** to `.gitignore`, then re-check:
+
+| Category | Examples |
+|----------|----------|
+| Build outputs | `dist/`, `build/`, `out/`, `bin/`, `obj/`, `target/`, `*.dll`, `*.exe`, `*.pdb`, `*.o`, `*.class` |
+| Dependency caches | `node_modules/`, `.venv/`, `__pycache__/`, `.gradle/`, `.cargo/registry/` |
+| Editor / OS junk | `.DS_Store`, `Thumbs.db`, `.idea/`, `.vscode/` (per project policy), `*.swp` |
+| Logs / transient | `*.log`, `logs/`, `tmp/`, `*.cache` |
+| Local-only Cursor state | `.cursor/agent-transcripts/`, `terminals/`, `.cursor/.local-auto-push` (the marker, not the rule) |
+| Secrets (see §3) | `.env*`, `*.pem`, `*.key`, `secrets.*`, `credentials*`, `id_rsa*` |
+
+Keep `.cursor/rules/`, `.cursor/skills/`, `.cursor/README.md` **tracked** (`git-track-cursor-folder.mdc`).
+
+---
+
+## 3. Secret-leak scan — MUST (hard stop)
+
+Before staging, run this scan against the set of files that would be added by `git add -A`:
+
+```bash
+git status --porcelain | awk '{print $2}'
+```
+
+If **any** of the following would be staged (and is **not** already in `.gitignore`), **stop the entire task, do not commit, do not push**, and report the file paths to the user:
+
+- Any of: `.env`, `.env.*` (other than `.env.example` / `.env.sample` / `.env.template`)
+- Filenames matching: `*.pem`, `*.key`, `*.p12`, `*.pfx`, `id_rsa*`, `id_ed25519*`
+- `secrets.*`, `secret.*`, `credentials*`, `credentials.json`, `*.kdbx`
+- `aws_credentials`, `gcp-credentials*.json`, `azure-credentials*.json`, `service-account*.json`
+
+Treat this as a **safety stop**, not a normal failure: do **not** try to "auto-add to `.gitignore` and continue." Tell the user what was about to leak and let them decide. (Once they confirm and the file is gitignored or removed, you may continue.)
+
+Files matching the **template** suffixes above (`.env.example` etc.) are fine to commit and do not trigger the stop.
+
+---
+
 ## Required report (in your final message)
 
-One of:
+Include all of:
 
-- `Docs edited: <relative paths>`
-- `Reviewed N project docs, no edits needed.` (give the actual count)
+- `Docs edited: <relative paths>` **or** `Reviewed N project docs, no edits needed.` (give the actual count)
+- `.gitignore: <unchanged | updated to add: <patterns>>`
+- `Secret-leak scan: clean` **or** `Secret-leak scan: BLOCKED on <paths>` (and the task must be in `blocked` state)
