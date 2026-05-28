@@ -1,0 +1,45 @@
+# Template: copy to .github/workflows/build-release-exe.yml and adjust project name / paths.
+name: Build release EXE
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'ui/**'
+      - 'scripts/build-release.ps1'
+      - 'scripts/watch-build-release.ps1'
+      - '**/*.sln'
+      - '.github/workflows/build-release-exe.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'ui/**'
+      - 'scripts/build-release.ps1'
+  workflow_dispatch:
+
+concurrency:
+  group: build-release-exe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package-self-contained:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build release (self-contained)
+        shell: pwsh
+        run: ./scripts/build-release.ps1 -Mode self-contained
+      - name: Verify exe exists
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path dist -Recurse -Filter '*.exe' | Select-Object -First 1
+          if (-not $exe) { throw 'No .exe under dist/' }
+          Write-Host "Built $($exe.FullName)"

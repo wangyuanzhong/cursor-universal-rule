@@ -1,0 +1,61 @@
+---
+description: Desktop/EXE repos — local release build; cloud CI must include exe packaging workflow
+alwaysApply: true
+---
+
+# EXE packaging — local build & cloud CI
+
+## Detect "EXE packaging repo"
+
+Any of these at repo root:
+
+- `scripts/watch-build-release.ps1`
+- `scripts/build-release.ps1`
+- `scripts/build_exe.ps1`
+- `scripts/pack-ready.ps1`
+- `scripts/ci_and_build.ps1`
+- Or `.csproj` / docs stating a shipped desktop `.exe`
+
+If none match, **skip this rule**.
+
+---
+
+## Local (Cursor Desktop)
+
+When **Local** mode (see `00-universal-core.mdc`) and this task changed **app/UI/packaging** (`src/`, `ui/`, `wwwroot`, packaging scripts):
+
+1. **Run one release build** before marking done (unless user said "docs only / no build"):
+
+   ```powershell
+   .\scripts\watch-build-release.ps1 -Once
+   ```
+
+   Fallback order:
+
+   - `.\scripts\build-release.ps1 -Mode self-contained`
+   - `.\scripts\build_exe.ps1`
+   - `.\scripts\ci_and_build.ps1`
+
+2. If `dist/` is locked, stop the app process then retry.
+3. Report output `.exe` **full path** and **LastWriteTime**.
+4. Do **not** skip because the task was "only git merge" if `src/`/`ui/` changed on disk.
+
+Optional hard automation (remind user once): `install-git-hooks.ps1`, background `watch-build-release.ps1` without `-Once`.
+
+---
+
+## Cloud (Cursor Cloud Agent / Linux)
+
+Cannot run Windows desktop `.exe` locally. You **must**:
+
+1. **Verify CI** includes a workflow that builds the release exe on `windows-latest`, e.g.:
+   - `.github/workflows/build-release-exe.yml` (or equivalent) running `build-release.ps1` / project script.
+2. If missing and this repo is clearly an exe product: **add** a minimal workflow in the same task (path filters on `src/`, `ui/`, `scripts/build-release.ps1`, solution file).
+3. After **push**, ensure that workflow is among **triggered** runs and reaches **success** (see `post-push-ci-green.mdc`).
+4. State clearly in the handoff: "Local exe not built here; verified via CI run &lt;id&gt;."
+
+---
+
+## Consistency with docs
+
+Exe output path, WebView2/wwwroot, and `models/` layout must match `README.md` / `docs/**` — update docs in the same task if you change packaging layout (`docs-sync-before-finish.mdc`).
