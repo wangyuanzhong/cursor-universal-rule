@@ -67,6 +67,7 @@ If you cannot tell which scenario applies, treat it as Scenario B.
 [ ] Code/build matches user intent; available tests pass
 [ ] Docs synced per docs-sync-before-finish.mdc (list edited files OR "reviewed N, no edits needed")
 [ ] .gitignore reviewed and updated per docs-sync-before-finish.mdc (no stray secrets, build outputs, transient logs)
+[ ] Deletion-rename grep sweep per docs-sync-before-finish.mdc (clean OR list intentional carryovers OR N/A: nothing deleted/renamed)
 [ ] EXE packaging satisfied per exe-packaging-local-cloud.mdc (or N/A with reason)
 [ ] .cursor/ tracked per git-track-cursor-folder.mdc (only if a commit/push happened)
 [ ] CHANGELOG.md entry + version bump per versioning-and-changelog.mdc (only if files changed)

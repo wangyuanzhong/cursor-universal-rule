@@ -25,6 +25,7 @@ MODE: ambiguous     (any mixed signals — STOP and ask the user; do NOT default
    [ ] Code/build matches user intent; tests pass
    [ ] All project **/*.md and **/*.txt reviewed and updated as needed
    [ ] .gitignore reviewed (no stray secrets, build outputs, transient logs)
+   [ ] Deletion-rename grep sweep — clean OR intentional carryovers listed (N/A only if nothing deleted/renamed this task)
    [ ] EXE packaging satisfied — or N/A
    [ ] .cursor/ tracked in git (only if commit/push happened)
    [ ] CHANGELOG.md entry + version bump (only if files changed)
@@ -87,13 +88,15 @@ Watch only runs triggered by the latest push on the current branch (`gh run list
 - Commit messages use [Conventional Commits](https://www.conventionalcommits.org). Type→bump: `feat` = MINOR; `fix`/`perf` = PATCH; `docs`/`refactor`/`test`/`chore`/`build`/`ci` = PATCH; any commit with `BREAKING CHANGE:` footer = MAJOR.
 - Write entries in the same language as the project's `README.md`. Don't auto-create git tags.
 
-## Pre-push hygiene (`.md`, `.txt`, `.gitignore`)
+## Pre-push hygiene (`.md`, `.txt`, `.gitignore`, deletion grep sweep)
 
 Walk **all** project `**/*.md` and `**/*.txt` (excluding `node_modules/`, `dist/`, `bin/`, `obj/`, `.git/`, `vendor/`, large `models/`). Update anything that drifted vs. your changes.
 
 Also review `.gitignore`: build outputs, dependency caches, editor/OS junk, transient logs, local-only Cursor state, secret patterns must be ignored.
 
-Report edited files or `Reviewed N docs, no edits needed`, plus `.gitignore: <unchanged | updated to add: <patterns>>`.
+**Deletion / rename grep sweep**: when this task deletes or renames any user-visible identifier (file, script, command, flag, env var, marker file, public function, URL, config key), grep the entire project for the old name across `*.md *.txt *.mdc *.yml *.yaml *.json *.toml *.ps1 *.sh *.py *.ts *.tsx *.js *.jsx *.cs *.csproj *.sln`. Each remaining hit is either updated/removed, or explicitly preserved with a one-line reason. Do not push while unjustified hits remain.
+
+Report edited files or `Reviewed N docs, no edits needed`, plus `.gitignore: <unchanged | updated to add: <patterns>>`, plus `Deletion-rename grep sweep: <N/A | clean | <intentional carryovers>>`.
 
 ## Git
 

@@ -1,15 +1,16 @@
 ---
-description: Before push or declaring done — sync every project .md/.txt, the .gitignore, and scan for secret leaks.
+description: Before push or declaring done — sync every project .md/.txt, the .gitignore, scan for secret leaks, and grep-sweep deletions/renames.
 alwaysApply: true
 ---
 
 # Pre-push hygiene (mandatory)
 
-This rule covers three things you must do before any `git push` or before declaring a task done:
+This rule covers four things you must do before any `git push` or before declaring a task done:
 
 1. **Project documentation** is consistent with the changes (`.md`, `.txt`).
 2. **`.gitignore`** correctly excludes things that must not be tracked.
 3. **No secret-shaped file** is about to land in the commit.
+4. **No stale references** to deleted / renamed identifiers remain in the project.
 
 ## When this rule fires
 
@@ -102,6 +103,47 @@ Files matching the **template** suffixes above (`.env.example` etc.) are fine to
 
 ---
 
+## 4. Deletion / rename grep sweep — MUST
+
+The per-file walk in §1 catches drift in the files you remembered to look at. This step catches stale references in the files you didn't think to re-read.
+
+**When this step fires.** Whenever the change set in this task **deletes**, **renames**, or **removes** any user-visible identifier:
+
+- A file or directory (e.g. `scripts/install-universal-rules.ps1`, `scripts/`).
+- A script / command name (e.g. `build-release.ps1`).
+- A CLI flag, env var, or configuration key (e.g. `-CopyTemplates`, `CURSOR_AGENT_LEGACY`).
+- A public function / class / module / API symbol.
+- A marker file or sentinel path (e.g. `.cursor/.local-skip-post-push-ci`).
+- A URL, route, or endpoint.
+
+If the change only adds or modifies content **without** removing any identifier, this step is `N/A` and you may skip it.
+
+**What to do.** For **each** deleted / renamed identifier, run a project-wide grep across all text files and reconcile every remaining hit:
+
+```bash
+grep -RIn \
+  --include='*.md' --include='*.txt' --include='*.mdc' \
+  --include='*.yml' --include='*.yaml' --include='*.json' \
+  --include='*.toml' --include='*.ps1' --include='*.sh' \
+  --include='*.py' --include='*.ts' --include='*.tsx' \
+  --include='*.js' --include='*.jsx' --include='*.cs' \
+  --include='*.csproj' --include='*.sln' \
+  '<old-identifier>' .
+```
+
+Then, for **every** remaining hit:
+
+- **Update or remove it** to reflect the new state, **or**
+- **Explicitly preserve it with a one-line reason** in your required report (e.g. `kept in CHANGELOG.md historical entries describing past state — intentional`, or `kept in vendored upstream skills/upstream/** — out of scope`).
+
+**You MUST NOT** push or declare the task done while there are unjustified hits.
+
+When the rename is partial (e.g. you renamed `foo_old` to `foo_new` in code but old name appears in a help string), update both. When the deletion is complete (file gone), every hit is either an update target or a justified historical reference.
+
+If the identifier is short and noisy (e.g. `id`, `x`, single letters), grep on a longer surrounding token to avoid false positives — the goal is reconciliation, not literal completeness.
+
+---
+
 ## Required report (in your final message)
 
 Include all of:
@@ -109,3 +151,4 @@ Include all of:
 - `Docs edited: <relative paths>` **or** `Reviewed N project docs, no edits needed.` (give the actual count)
 - `.gitignore: <unchanged | updated to add: <patterns>>`
 - `Secret-leak scan: clean` **or** `Secret-leak scan: BLOCKED on <paths>` (and the task must be in `blocked` state)
+- `Deletion-rename grep sweep: <N/A: nothing deleted or renamed | clean | <list of intentional carryovers and why>>`

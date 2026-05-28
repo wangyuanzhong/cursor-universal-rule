@@ -13,6 +13,72 @@ will be called out in `### Breaking`.
 
 (Pending changes; the next push will close this section into a dated entry.)
 
+## [0.6.0] - 2026-05-28
+
+Mechanical defense against the failure mode that just hit this repo:
+after `0.5.0` deleted `scripts/install-universal-rules.ps1`, two stale
+references to "安装脚本" / "安装到项目" survived in `README.md`'s
+upper sections because the per-file documentation walk in
+`docs-sync-before-finish.mdc` did not require a project-wide grep on
+deleted identifiers. This release fixes the immediate doc miss and
+adds a hard MUST grep-sweep step so future deletions are caught.
+
+This push contains two commits, one `fix` and one `feat`. Per the
+type-to-SemVer mapping, the highest-impact commit determines the bump,
+so this is `MINOR`.
+
+### Added
+- `rules/docs-sync-before-finish.mdc` §4 **Deletion / rename grep
+  sweep** — a hard MUST step that fires whenever the change set
+  deletes, renames, or removes any user-visible identifier (file,
+  script, command, flag, env var, marker file, public symbol, URL,
+  config key). The agent must run a project-wide grep across
+  `*.md *.txt *.mdc *.yml *.yaml *.json *.toml *.ps1 *.sh *.py *.ts
+  *.tsx *.js *.jsx *.cs *.csproj *.sln` for the old name and
+  reconcile every hit (update, remove, or explicitly preserve with a
+  one-line reason). Push and "task done" are blocked while
+  unjustified hits remain.
+- `Deletion-rename grep sweep` row added to the Done check in
+  `00-universal-core.mdc` and the user-rules summary, with explicit
+  options `clean | <intentional carryovers> | N/A: nothing
+  deleted/renamed`.
+
+### Fixed
+- `README.md` L3 — project description now says "把 `rules/` 和
+  `skills/` 复制到目标项目的 `.cursor/`" instead of "安装到项目的
+  `.cursor/`", aligning the header with the no-installer reality
+  introduced in `0.5.0`.
+- `README.md` L95 — the "重要说明（必读）" paragraph no longer lists
+  "安装脚本" as a companion to skills; it now reads "配合 **skills**
+  （如 `github-actions-ci`）".
+
+### Changed
+- `rules/docs-sync-before-finish.mdc` frontmatter `description` and
+  intro paragraph updated to mention the new fourth concern.
+- `user-rules/SUMMARY-for-cursor-settings.md` "Pre-push hygiene"
+  section retitled to include the grep sweep, with command summary
+  and required-report addition.
+
+### Files / modules touched
+- `README.md` — two header-section rewordings.
+- `rules/docs-sync-before-finish.mdc` — new §4 (~30 lines), updated
+  frontmatter and intro, expanded required report.
+- `rules/00-universal-core.mdc` — Done check gains the
+  `Deletion-rename grep sweep` row.
+- `user-rules/SUMMARY-for-cursor-settings.md` — Done check + Pre-push
+  hygiene section updated to mirror.
+- `CHANGELOG.md` — this entry.
+
+### Verify
+- `grep -RIn 'install-universal-rules\|安装脚本' . --include='*.md'`
+  returns hits only in `CHANGELOG.md` (historical entries) and one
+  intentional example reference inside
+  `rules/docs-sync-before-finish.mdc`. Both are documented as
+  intentional carryovers per the new rule.
+- `python3 .github/scripts/validate.py` exits 0.
+- The next push reaches CI green on `rules-and-changelog` and
+  `templates`.
+
 ## [0.5.0] - 2026-05-28
 
 Drops the PowerShell installer in favor of plain `cp` / `Copy-Item`
