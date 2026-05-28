@@ -50,10 +50,17 @@ Before any commit, scan paths that would be staged. If a likely-secret file (`.e
 
 ## Sub-agent commit/push policy
 
-- **Scenario A** (sub-agent in an isolated worktree, e.g. `best-of-n-runner`, or different `git rev-parse --git-dir`): MAY commit and push its own branch; maintains its own `CHANGELOG.md` entries.
-- **Scenario B** (sub-agent shares the parent's workspace, e.g. `generalPurpose`, `explore`): MUST NOT commit/push/`git add`. Top-level agent does the single commit + push.
+- **Scenario A** (sub-agent in an isolated worktree, e.g. `best-of-n-runner`, or different `git rev-parse --git-dir`): MAY commit and push its own branch. **Before returning to its caller it must own all of**: its own `CHANGELOG.md` entry, pre-push hygiene incl. the per-file docs review enumeration and the deletion-rename grep sweep, **CI watching for its push to a documented end state**, and its own verbatim Done check. If the sub-agent's environment cannot do all of that (no `gh`, time/turn budget too short), it MUST NOT push — leave changes in the working tree or return early with `blocked: <reason>`.
+- **Scenario B** (sub-agent shares the parent's workspace, e.g. `generalPurpose`, `explore`): MUST NOT commit/push/`git add`. Top-level agent does the single commit + push, runs Done check, watches CI.
 
 If unsure, treat as Scenario B.
+
+**Parent verification (mandatory).** When a sub-agent returns, before declaring your own task done you MUST verify:
+
+1. Sub-agent's reply contains a verbatim Done check; every item is `done` or `N/A: <reason>`. Any `blocked` is propagated up.
+2. If the sub-agent reports a push, CI on its branch reached `success` or a documented stop condition. If absent → `blocked: sub-agent did not watch CI`; you watch CI yourself.
+3. If the sub-agent's push changed project files, it appended a `CHANGELOG.md` entry. If absent → `blocked: sub-agent did not update CHANGELOG`; you write the entry, push, watch CI again.
+4. Sub-agent's docs review is enumerated per-file (not a bare `Reviewed N, no edits needed`). If absent → `blocked: sub-agent docs review not enumerated`; you enumerate yourself.
 
 ## EXE / desktop repos
 
@@ -74,9 +81,11 @@ When active, after any reply that modified at least one project file (excluding 
 
 Hard stops (no push, report and wait): detached HEAD, in-progress merge/rebase, secret-leak detected, non-fast-forward not cleanly resolvable, push rejected by branch protection. Never `--force` or `--force-with-lease`.
 
-## After push (always — Cloud or Local)
+## After push (always — Cloud or Local; whoever pushed watches)
 
 Watch only runs triggered by the latest push on the current branch (`gh run list --branch ... --limit 10`, `gh run watch --exit-status`). Fix red, push, watch again. Stop after 2 identical failures and escalate. **There is no Local opt-out.** (Older versions of this pack honored `.cursor/.local-skip-post-push-ci`; that file is now ignored.)
+
+**Whoever ran `git push` watches CI for that push to a documented end state, before returning to their caller.** This includes Scenario A sub-agents on their own branch. Sub-agents must NOT delegate CI watching back to the parent. If a sub-agent cannot watch CI in its environment, it must NOT push.
 
 ## Versioning and changelog (every push)
 
@@ -96,7 +105,7 @@ Also review `.gitignore`: build outputs, dependency caches, editor/OS junk, tran
 
 **Deletion / rename grep sweep**: when this task deletes or renames any user-visible identifier (file, script, command, flag, env var, marker file, public function, URL, config key), grep the entire project for the old name across `*.md *.txt *.mdc *.yml *.yaml *.json *.toml *.ps1 *.sh *.py *.ts *.tsx *.js *.jsx *.cs *.csproj *.sln`. Each remaining hit is either updated/removed, or explicitly preserved with a one-line reason. Do not push while unjustified hits remain.
 
-Report edited files or `Reviewed N docs, no edits needed`, plus `.gitignore: <unchanged | updated to add: <patterns>>`, plus `Deletion-rename grep sweep: <N/A | clean | <intentional carryovers>>`.
+**Required output — per-file enumeration (no aggregate-count shortcut).** Output a `Docs review:` block where every project `.md`/`.txt` in scope is accounted for individually with one of `edited: <summary>`, `checked: ok`, or `skipped: <reason>`. You MAY group a subdirectory like `docs/api/ (12 files) — checked: ok` only when every file in that group shares the same status. End with `Total: N reviewed, X edited, Y ok, Z skipped` summing to the actual file count. Plus `.gitignore: <unchanged | updated to add: <patterns>>` and `Deletion-rename grep sweep: <N/A | clean | <intentional carryovers>>`. A bare `Reviewed N docs, no edits needed` is **forbidden**.
 
 ## Git
 

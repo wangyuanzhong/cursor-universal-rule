@@ -13,6 +13,95 @@ will be called out in `### Breaking`.
 
 (Pending changes; the next push will close this section into a dated entry.)
 
+## [0.7.0] - 2026-05-28
+
+Closes two real-world rule bypass paths reported from a downstream
+project:
+
+- A sub-agent ran, pushed, and returned without watching CI. The
+  existing `post-push-ci-green.mdc` said "after push, watch CI" but
+  did not say **which** agent owns the watch, leaving room for
+  sub-agents to assume the parent would do it.
+- Not all docs were updated. The existing `docs-sync-before-finish.mdc`
+  required output let the agent satisfy its obligation with
+  `Reviewed 12 docs, no edits needed` — a single aggregate count that
+  did not force the agent to actually visit every file.
+
+This release rewrites both rules so the contracts are mechanical and
+unbypassable, and adds an explicit parent-side verification step so
+even a misbehaving sub-agent gets caught before the parent declares
+its own task done.
+
+### Added
+- `rules/post-push-ci-green.mdc` "Who watches" section: **whoever
+  ran `git push` watches CI for that push to a documented end state
+  before returning to their caller**. Applies to Scenario A
+  sub-agents on their own branches. Sub-agents that cannot watch CI
+  in their environment (no `gh`, hard time/turn budget) MUST NOT
+  push — they leave changes for the parent or return early with
+  `blocked: cannot watch CI`. Pushing without watching is treated
+  as a hard rule violation.
+- `rules/post-push-ci-green.mdc` "Parent verification" section:
+  when a sub-agent returns and reports a push, the parent must
+  verify (1) sub-agent's Done check is present and not blocked,
+  (2) CI on the sub-agent's branch reached `success` or a
+  documented stop condition, (3) the sub-agent appended a
+  `CHANGELOG.md` entry. Any missing item is `blocked: sub-agent
+  did not <X>` and the parent picks it up.
+- `rules/00-universal-core.mdc` "Sub-agent commit/push policy" now
+  spells out, for Scenario A: the sub-agent owns its own
+  `CHANGELOG.md` entry, pre-push hygiene incl. docs enumeration and
+  deletion-rename grep sweep, **CI watching for its own push**, and
+  its own verbatim Done check, all before returning.
+- `rules/00-universal-core.mdc` new "Parent verification when a
+  sub-agent returns" subsection: parent's Done check covers the
+  union of (parent's own work) and (verification of every
+  sub-agent's work). A bare `Reviewed N docs, no edits needed` from
+  a sub-agent is explicitly listed as not acceptable.
+
+### Changed
+- `rules/docs-sync-before-finish.mdc` required output is now a
+  per-file enumeration. The aggregate-count shortcut
+  (`Reviewed N project docs, no edits needed`) is **removed**.
+  Every project `.md`/`.txt` in scope must be listed with exactly
+  one of `edited: <summary>`, `checked: ok`, or
+  `skipped: <reason>`. Subdirectory grouping (`docs/api/ (12 files)
+  — checked: ok`) is allowed only when every file in the group
+  shares the same status. A `Total: N reviewed, X edited, Y ok, Z
+  skipped` summary line is required and must add up to the actual
+  scoped file count.
+- `rules/docs-sync-before-finish.mdc` "What to do" and "MUST NOT"
+  sections updated to call out the enumeration requirement and
+  ban the count-shortcut explicitly.
+- `user-rules/SUMMARY-for-cursor-settings.md` mirrors all three
+  rule-level changes: who-watches CI, parent verification, and
+  per-file docs enumeration.
+
+### Files / modules touched
+- `rules/post-push-ci-green.mdc` — added "Who watches" and "Parent
+  verification" sections.
+- `rules/00-universal-core.mdc` — expanded sub-agent policy with
+  return-time obligations; added "Parent verification when a
+  sub-agent returns" subsection.
+- `rules/docs-sync-before-finish.mdc` — replaced aggregate-count
+  required output with per-file enumeration; updated "What to do"
+  and "MUST NOT" to bar the shortcut.
+- `user-rules/SUMMARY-for-cursor-settings.md` — three sections
+  rewritten to mirror the rule changes.
+- `CHANGELOG.md` — this entry.
+
+### Verify
+- `rules/post-push-ci-green.mdc` contains a section titled
+  "Who watches — MUST" stating the pushing agent owns CI watching.
+- `rules/00-universal-core.mdc` contains "Parent verification when
+  a sub-agent returns — MUST" and lists the four checks (Done
+  check, CI status, CHANGELOG, docs enumeration).
+- `rules/docs-sync-before-finish.mdc` "Required report" no longer
+  contains the string `Reviewed N project docs, no edits needed`
+  as a permitted output.
+- `python3 .github/scripts/validate.py` exits 0.
+- The next push reaches CI green.
+
 ## [0.6.0] - 2026-05-28
 
 Mechanical defense against the failure mode that just hit this repo:

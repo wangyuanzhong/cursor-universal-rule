@@ -46,6 +46,7 @@ Do **not** skip files because they look "boring" (e.g. small READMEs in subfolde
 
 ### What to do
 
+- **Open each file** under the scope above. "Walk" means actually read the file, not glance at the path. If your tool budget cannot afford reading every file, you must still enumerate them in the report (see below) — the enumeration forces you to either confirm or block.
 - Update stale sections in **this same task**. Match the file's existing language and tone.
 - Add a `CHANGELOG.md` entry per `versioning-and-changelog.mdc` whenever any file changed.
 - Fix the **code** when docs reflect intended product but code drifted.
@@ -55,6 +56,7 @@ Do **not** skip files because they look "boring" (e.g. small READMEs in subfolde
 
 - Push or declare done with a known doc/code mismatch.
 - Update only `README.md` and ignore `docs/**` or shipped `.txt` specs.
+- Use a single aggregate count like `Reviewed 12 docs, no edits needed` to skip enumeration. The required output below requires **every file** to be accounted for individually (or grouped only when all files in a group share the same status — see report format).
 
 ---
 
@@ -146,9 +148,36 @@ If the identifier is short and noisy (e.g. `id`, `x`, single letters), grep on a
 
 ## Required report (in your final message)
 
-Include all of:
+Include all of the four sub-reports below. **The aggregate-count shortcut for docs review is gone**; enumeration is mandatory.
 
-- `Docs edited: <relative paths>` **or** `Reviewed N project docs, no edits needed.` (give the actual count)
+### Docs review (enumeration — mandatory)
+
+Output a `Docs review:` section that accounts for **every** project `.md` and `.txt` file in the scope above. For each file (or grouped subdirectory, see below), give exactly one status:
+
+- `edited: <one-line summary of the edit>` — file was modified in this task.
+- `checked: ok` — file was read; nothing in it conflicts with this change set.
+- `skipped: <reason>` — explicit excluded path (e.g. `vendored upstream`, `large model artifact`, or scope exclusions listed earlier in this rule).
+
+Format:
+
+```
+Docs review:
+- README.md — edited: replaced "安装" with "复制" in the install paragraph
+- CHANGELOG.md — edited: appended [0.7.0] entry
+- docs/SETUP.md — checked: ok (no install-method change in this task)
+- docs/api/ (12 files) — checked: ok (API docs; this task did not change any API surface)
+- skills/upstream/** (3 files) — skipped: vendored upstream, out of scope
+Total: 18 files reviewed, 2 edited, 13 ok, 3 skipped
+```
+
+Grouping rules:
+
+- You **may** group files in the same subdirectory under `<dir>/ (N files) — <status>` **only when every file in that group shares the same status**. If any file in a group has a different status, list each file separately.
+- The trailing `Total: ... reviewed, ... edited, ... ok, ... skipped` line is required and must add up to the actual file count under scope.
+- A file appearing nowhere in this enumeration counts as missing — the parent agent / human reader can detect that immediately.
+
+### Other sub-reports
+
 - `.gitignore: <unchanged | updated to add: <patterns>>`
 - `Secret-leak scan: clean` **or** `Secret-leak scan: BLOCKED on <paths>` (and the task must be in `blocked` state)
 - `Deletion-rename grep sweep: <N/A: nothing deleted or renamed | clean | <list of intentional carryovers and why>>`

@@ -16,13 +16,18 @@ The marker file is committed so all developers on the repo share the same policy
 - After any complete agent reply that modified at least one project file
   (excluding `.cursor/agent-transcripts/**`, `terminals/**`, `.gitignore`d paths),
   the agent will:
-  1. Run pre-push hygiene (docs sync, `.gitignore` review, secret-leak scan).
+  1. Run pre-push hygiene per `docs-sync-before-finish.mdc`: per-file
+     enumeration of every project `.md`/`.txt`, `.gitignore` review,
+     secret-leak hard-stop scan, and a deletion / rename grep sweep
+     for any identifier removed by this task.
   2. Bump SemVer + write a `CHANGELOG.md` entry per
      `.cursor/rules/versioning-and-changelog.mdc`.
   3. `git add -A`, `git commit` (Conventional Commits), and
      `git push origin HEAD` to the **current branch** — never to a different
      branch.
   4. Watch GitHub Actions to green per `post-push-ci-green.mdc` (no opt-out).
+     **Whoever ran `git push` watches CI** — the agent that pushed does
+     not return until CI is green or hits a documented stop condition.
 
 ## What it will NOT do
 
@@ -32,8 +37,11 @@ The marker file is committed so all developers on the repo share the same policy
 - Push if the secret-leak scan finds a likely-secret file. That is a hard
   stop.
 - Push from a sub-agent that shares your workspace (Scenario B). Only the
-  top-level agent pushes; sub-agents in isolated worktrees push their own
-  branches.
+  top-level agent pushes. A Scenario A sub-agent (isolated worktree) MAY
+  push its own branch, but it must own the full pre-push hygiene, the
+  CHANGELOG entry, **CI watching to green on its own branch**, and a
+  verbatim Done check before returning to the parent. If the sub-agent's
+  environment cannot do all of that, it MUST NOT push.
 
 ## How to disable
 

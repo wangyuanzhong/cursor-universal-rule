@@ -14,6 +14,32 @@ This rule applies in **both** `MODE: Cloud` and `MODE: Local`. There is no opt-o
 
 If the latest push **did not trigger** any workflow (check `on:` and `paths:` in `.github/workflows/*.yml`), state that explicitly and skip watching. This is the only legitimate skip.
 
+## Who watches — MUST
+
+**Whoever ran `git push` is responsible for watching CI for that push to a documented end state, before returning to their caller** (the user, or a parent agent in the case of a sub-agent). This applies to:
+
+- The top-level agent's pushes.
+- A Scenario A sub-agent's pushes to its own branch (see `00-universal-core.mdc` "Sub-agent commit/push policy"). The sub-agent watches CI on its own branch, not its caller.
+
+You **MUST NOT** delegate CI watching to your caller. The pushing agent owns the watch.
+
+If you (sub-agent) cannot watch CI in your environment — `gh` is unavailable, your time / turn budget is too short to wait — you **MUST NOT push at all**. Either:
+
+- Leave the changes in the working tree for the parent agent to push (Scenario B behavior even if you are nominally Scenario A), or
+- Return early with `blocked: cannot watch CI for required push` so the parent picks up.
+
+Pushing without watching is treated as a hard rule violation.
+
+## Parent verification (after a sub-agent returns) — MUST
+
+When a sub-agent returns and its report mentions a push, the parent agent **must verify all of these before declaring its own task done**:
+
+1. The sub-agent's own Done check is present and every item is `done` or `N/A: <reason>`. Any `blocked` is propagated up.
+2. The CI run for the sub-agent's push reached `success` or a documented stop condition. If the sub-agent did not include CI status, treat as `blocked: sub-agent did not watch CI` and watch CI yourself before continuing.
+3. The sub-agent appended a `CHANGELOG.md` entry per `versioning-and-changelog.mdc`. If absent and the sub-agent's push changed project files, treat as `blocked: sub-agent did not update CHANGELOG` and fix it (write the entry, push, watch CI again) before continuing.
+
+This is a backstop: even if the sub-agent silently violated a rule, the parent catches it instead of inheriting the inconsistency.
+
 ## You MUST
 
 1. Watch only runs **triggered by the latest push** on the **current branch**:

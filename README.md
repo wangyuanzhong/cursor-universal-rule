@@ -76,14 +76,25 @@ git commit -m "chore(cursor): enable local auto-push for current branch"
 
 `00-universal-core.mdc` 区分两种场景：
 
-- **Scenario A — 隔离 worktree 的子 agent**（`best-of-n-runner`，或子 agent 的 `git rev-parse --git-dir` 与顶层不同）：可以 commit + push 自己的分支，自己维护 CHANGELOG entry。顶层 agent 在合并时再去重 / 整合。
-- **Scenario B — 与顶层共享工作区的子 agent**（默认的 `generalPurpose`/`explore`）：**禁止** `git add`/`git commit`/`git push`。改动留在工作区，由顶层 agent 在自己回复结束时统一 commit + push。
+- **Scenario A — 隔离 worktree 的子 agent**（`best-of-n-runner`，或子 agent 的 `git rev-parse --git-dir` 与顶层不同）：可以 commit + push 自己的分支。**返回上级前必须自己完成**全部 4 件事：
+  - 自己写 `CHANGELOG.md` entry；
+  - 自己跑 pre-push hygiene（含 docs review **逐文件枚举** + deletion-rename grep sweep）；
+  - **自己盯 CI 到绿**（或文档化的 stop condition），不许把盯 CI 推给上级；
+  - 自己输出一份完整的 Done check。
+
+  环境上跑不动其中任何一件事（没有 `gh`、turn 预算太短等），子 agent **不许 push**——把改动留在工作区让顶层 push，或直接 `blocked: <reason>` 返回。
+
+- **Scenario B — 与顶层共享工作区的子 agent**（默认的 `generalPurpose`/`explore`）：**禁止** `git add`/`git commit`/`git push`。改动留在工作区，由顶层 agent 在自己回复结束时统一 commit + push、跑 Done check、盯 CI。
 
 无法判断时按 Scenario B。
 
-## CI watch 不再可关闭
+**顶层 agent 验收义务（强制）**：子 agent 返回后，顶层 agent 在宣告自己任务完成前必须核查：(1) 子 agent 输出了 verbatim Done check 且没有 `blocked`；(2) 子 agent 若 push，则其分支的 CI 已到绿或 stop condition；(3) 子 agent 若改动了项目文件，则附了 CHANGELOG entry；(4) docs review 是逐文件枚举的，不是 `Reviewed N docs, no edits needed`。任何一项缺失即 `blocked: sub-agent did not <X>`，由顶层接手补救后再宣告完成。
 
-旧版规则曾允许在仓库里放 `.cursor/.local-skip-post-push-ci` 让 Local 跳过盯 CI。**新版完全废除该开关**。如果你的仓库还有这个文件，可以删掉，规则不再读它。理由：本地 auto-push 启用后再让 CI 不盯，会让 main / 工作分支静悄悄地红着，得不偿失。
+## CI watch — 谁 push 谁盯，不可关闭
+
+`post-push-ci-green.mdc` 强制：**谁运行了 `git push`，谁就负责把这次 push 的 CI 看到绿**或文档化的 stop condition，再 return 给上级（user 或父 agent）。这条对顶层和 Scenario A 子 agent 同样适用——子 agent 不许把盯 CI 这件事甩给顶层。
+
+旧版规则曾允许在仓库里放 `.cursor/.local-skip-post-push-ci` 让 Local 跳过盯 CI。**新版完全废除该开关**。如果你的仓库还有这个文件，可以删掉，规则不再读它。
 
 ## 重要说明（必读）
 
