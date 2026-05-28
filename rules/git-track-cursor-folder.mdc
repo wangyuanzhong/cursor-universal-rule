@@ -37,4 +37,4 @@ The directory `.cursor/` at the **repo root** must be versioned. This is **not**
 
 ## Tip
 
-`scripts/install-universal-rules.ps1` (in the cursor-universal-rule pack) can patch common `.gitignore` mistakes when reinstalling the pack.
+If `.gitignore` already had a blanket `.cursor/` ignore from before this pack was installed, you must remove it once. There is no installer for this rules pack — copy `rules/` and `skills/` directly into the target repo's `.cursor/`.

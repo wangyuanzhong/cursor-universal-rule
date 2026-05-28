@@ -96,33 +96,48 @@ Cursor **Rule 是约束 Agent 的说明书**，不会在保存文件时自动执
 
 ## 安装到新项目
 
-在 **目标仓库根目录** 执行（PowerShell）：
+规则就是几个 Markdown 文件，**直接复制即可**，没有安装脚本。
+
+```bash
+git clone https://github.com/wangyuanzhong/cursor-universal-rule.git /tmp/cursor-universal-rule
+
+cd /path/to/your-repo
+mkdir -p .cursor
+cp -r /tmp/cursor-universal-rule/rules   .cursor/rules
+cp -r /tmp/cursor-universal-rule/skills  .cursor/skills
+
+git add .cursor/
+git commit -m "chore(cursor): install universal rules pack"
+```
+
+PowerShell 等价写法：
 
 ```powershell
-# 克隆本仓库一次
 git clone https://github.com/wangyuanzhong/cursor-universal-rule.git $env:TEMP\cursor-universal-rule
 
-# 安装规则 + skill + 修正 .gitignore
-& "$env:TEMP\cursor-universal-rule\scripts\install-universal-rules.ps1" -ProjectRoot .
+cd C:\path\to\your-repo
+New-Item -ItemType Directory -Path .cursor -Force | Out-Null
+Copy-Item "$env:TEMP\cursor-universal-rule\rules"  .cursor\rules  -Recurse -Force
+Copy-Item "$env:TEMP\cursor-universal-rule\skills" .cursor\skills -Recurse -Force
 
-# 可选：把「用户级摘要」复制到剪贴板，粘贴到 Cursor → Settings → Rules → User Rules
-& "$env:TEMP\cursor-universal-rule\scripts\install-universal-rules.ps1" -InstallUserRulesClipboard
+git add .cursor\
+git commit -m "chore(cursor): install universal rules pack"
 ```
 
-或指定本仓库路径：
-
-```powershell
-.\scripts\install-universal-rules.ps1 -ProjectRoot "C:\path\to\your-app" -UniversalRepo "C:\path\to\cursor-universal-rule"
-```
-
-安装结果：
+安装后：
 
 - `.cursor/rules/*.mdc` — 项目规则（进 Git，Cloud / 本地同源）
 - `.cursor/skills/github-actions-ci/SKILL.md` — CI 排错 playbook
-- `.cursor/README.md` — 说明
-- 若 `.gitignore` 忽略了 `.cursor/`，脚本会尝试移除整目录忽略（保留 `agent-transcripts/` 等常见例外）
 
-可选附加（不会自动放到目标仓库，按需手工复制）：
+如果你的 `.gitignore` 之前整个目录忽略了 `.cursor/`（`.cursor/`、`.cursor/*`、`.cursor/**`），需要手工删掉这几行；本仓库的 `git-track-cursor-folder.mdc` 规则会强制 Agent 在第一次 push 前自检 `git check-ignore -v .cursor`，所以不删它会被 Agent 卡住报你。
+
+User Rules 摘要（可选，粘进 Cursor → Settings → Rules → User Rules）：
+
+```bash
+cat /tmp/cursor-universal-rule/user-rules/SUMMARY-for-cursor-settings.md
+```
+
+可选附加（按需手工复制，**不**自动放进项目，避免覆盖已有文件 / 静悄悄启用 CI）：
 
 - `templates/CHANGELOG-initial.md` → 仓库根 `CHANGELOG.md`（首次启用版本号管理时）
 - `templates/github-workflow-build-release-exe.yml` → `.github/workflows/build-release-exe.yml`（EXE 项目）
@@ -134,12 +149,11 @@ git clone https://github.com/wangyuanzhong/cursor-universal-rule.git $env:TEMP\c
 cursor-universal-rule/
 ├── README.md
 ├── CHANGELOG.md                    # 本仓库的版本历史（按 versioning-and-changelog.mdc 维护）
-├── rules/                          # 源规则（安装时复制到项目的 .cursor/rules/）
-├── skills/github-actions-ci/
+├── rules/                          # 源规则（手工复制到项目的 .cursor/rules/）
+├── skills/github-actions-ci/       # CI 排错 playbook
 ├── templates/                      # 可选模板（CHANGELOG / CI workflow / 启用说明）
 ├── user-rules/                     # 可选：粘贴到 Cursor User Rules 的摘要
-└── scripts/
-    └── install-universal-rules.ps1
+└── .github/                        # 本仓库自校验 CI（与下游项目无关）
 ```
 
 ## 与 array-mic-refreshment 的关系

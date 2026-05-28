@@ -13,6 +13,61 @@ will be called out in `### Breaking`.
 
 (Pending changes; the next push will close this section into a dated entry.)
 
+## [0.5.0] - 2026-05-28
+
+Drops the PowerShell installer in favor of plain `cp` / `Copy-Item`
+instructions, on the grounds that the script does little beyond copying
+two directories and was Windows-only.
+
+### Removed
+- `scripts/install-universal-rules.ps1` — deleted. The script copied
+  `rules/*.mdc` and `skills/`, wrote a small `.cursor/README.md`,
+  patched blanket `.cursor/` ignores out of `.gitignore`, and could put
+  the user-rules summary on the clipboard. None of these are operations
+  worth a Windows-only dependency: rule installation is now a plain
+  `cp -r` (or `Copy-Item -Recurse`), the `.gitignore` cleanup is
+  enforced by `git-track-cursor-folder.mdc`, and the user-rules summary
+  can be copied directly from `user-rules/SUMMARY-for-cursor-settings.md`.
+- `scripts/` directory — empty after the file removal, so removed too.
+- `.github/workflows/validate-rules-pack.yml` `powershell-syntax` job —
+  no longer relevant; the workflow now runs only `rules-and-changelog`
+  and `templates`.
+
+### Changed
+- `README.md` — "安装到新项目" section rewritten with concrete
+  `git clone` + `cp` (and PowerShell `Copy-Item`) commands, plus an
+  explicit note that `.gitignore` blanket `.cursor/` ignores must be
+  removed manually (also enforced by `git-track-cursor-folder.mdc`).
+  Directory-structure diagram updated.
+- `user-rules/SUMMARY-for-cursor-settings.md` — final line points at
+  the README's install section instead of the deleted script.
+- `rules/git-track-cursor-folder.mdc` — "Tip" section no longer
+  references the installer; states explicitly that there is no
+  installer.
+
+### Breaking
+- Anyone who relied on `scripts/install-universal-rules.ps1` will need
+  to copy `rules/` and `skills/` manually instead. Migration is the
+  three lines of `cp -r` / `Copy-Item -Recurse` shown in the README.
+  The `-InstallUserRulesClipboard` convenience is gone — paste the
+  contents of `user-rules/SUMMARY-for-cursor-settings.md` directly.
+
+### Files / modules touched
+- `scripts/install-universal-rules.ps1` — deleted.
+- `scripts/` — directory removed (now empty).
+- `.github/workflows/validate-rules-pack.yml` — removed
+  `powershell-syntax` job.
+- `README.md` — install section rewrite + structure diagram.
+- `user-rules/SUMMARY-for-cursor-settings.md` — last line updated.
+- `rules/git-track-cursor-folder.mdc` — Tip section reworded.
+- `CHANGELOG.md` — this entry.
+
+### Verify
+- `ls scripts/ 2>/dev/null` returns nothing.
+- `python3 .github/scripts/validate.py` exits 0.
+- The CI run for this push has only two jobs: `rules-and-changelog`
+  and `templates`. Both green.
+
 ## [0.4.1] - 2026-05-28
 
 CI deprecation warning fix.

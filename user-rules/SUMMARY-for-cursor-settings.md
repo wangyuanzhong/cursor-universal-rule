@@ -102,4 +102,4 @@ Report edited files or `Reviewed N docs, no edits needed`, plus `.gitignore: <un
 
 ---
 
-Install project rules: `install-universal-rules.ps1 -ProjectRoot <repo>` from the cursor-universal-rule repository.
+Install project rules by copying the rule pack's `rules/` and `skills/` directories into your project's `.cursor/`. See the [cursor-universal-rule README](https://github.com/wangyuanzhong/cursor-universal-rule#安装到新项目) for the exact `cp` / `Copy-Item` invocation.
