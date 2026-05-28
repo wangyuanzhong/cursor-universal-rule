@@ -13,6 +13,66 @@ will be called out in `### Breaking`.
 
 (Pending changes; the next push will close this section into a dated entry.)
 
+## [0.7.1] - 2026-05-28
+
+Stale-reference cleanup that the deletion / rename grep sweep should
+have caught earlier. Reported on PR #2 by the maintainer.
+
+### Fixed
+- `rules/git-track-cursor-folder.mdc` — removed
+  `.cursor/.local-skip-post-push-ci` from the list of "targeted ignores
+  you may keep". The opt-out file was deactivated in `0.3.0`, so
+  recommending it as a kept ignore was inconsistent. The list now shows
+  only `.cursor/agent-transcripts/` as an example, with an explicit
+  reminder to keep `.cursor/.local-auto-push` tracked (it is the shared
+  project-level marker for the auto-push rule).
+- `rules/00-universal-core.mdc` Done check item for docs review —
+  previously read `(list edited files OR "reviewed N, no edits needed")`,
+  which contradicted the `0.7.0` rewrite of `docs-sync-before-finish.mdc`
+  that explicitly forbids the aggregate-count shortcut. Now reads
+  `Docs review per docs-sync-before-finish.mdc — per-file enumeration
+  (every project .md/.txt with edited / checked: ok / skipped: <reason>;
+  bare aggregate counts are forbidden)`.
+- `user-rules/SUMMARY-for-cursor-settings.md` Done check item for docs
+  review — same wording fix to mirror.
+
+### Why this slipped through
+`0.6.0` introduced the deletion / rename grep sweep, but did not
+require a one-time backfill on identifiers deleted before `0.6.0`
+existed. The `.cursor/.local-skip-post-push-ci` reference in
+`git-track-cursor-folder.mdc` survived from `0.1.0`. The `0.7.0`
+docs-sync rewrite removed `reviewed N, no edits needed` from the
+required-output spec but did not update the Done-check parenthetical
+in `00-universal-core.mdc` that referenced the same idiom. Both are
+exactly the kind of cross-rule consistency bug the grep sweep can
+mechanically catch — it just needs to be run.
+
+### Files / modules touched
+- `rules/git-track-cursor-folder.mdc` — L18-22 reworded.
+- `rules/00-universal-core.mdc` — L85 docs-review Done-check item rewritten.
+- `user-rules/SUMMARY-for-cursor-settings.md` — L26 docs-review Done-check item rewritten.
+- `CHANGELOG.md` — this entry.
+
+### Verify
+- `grep -RIn 'local-skip-post-push-ci' rules/` returns only:
+  - `post-push-ci-green.mdc` migration note (intentional historical);
+  - `docs-sync-before-finish.mdc` example of a deleted marker file in
+    the new rule documentation (intentional).
+  No other rule file references it as a live mechanism.
+- `grep -RIn 'reviewed N, no edits needed\|Reviewed N project docs' rules/`
+  returns no live hits in the rule files (only `CHANGELOG.md`
+  historical entries, which are intentional).
+- `python3 .github/scripts/validate.py` exits 0.
+
+### Note on AGENTS.md
+Some downstream projects keep an `AGENTS.md` at their repo root as a
+"product truth" doc (referenced in the conflict-priority list in
+`00-universal-core.mdc`). This rules pack itself does **not** ship an
+`AGENTS.md`. If a downstream project's `AGENTS.md` still mentions
+`.cursor/.local-skip-post-push-ci`, that text is a downstream
+artifact, not something this pack can patch — search and replace
+locally per the pack's deletion / rename grep sweep guidance.
+
 ## [0.7.0] - 2026-05-28
 
 Closes two real-world rule bypass paths reported from a downstream

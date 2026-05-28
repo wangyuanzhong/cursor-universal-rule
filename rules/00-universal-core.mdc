@@ -82,7 +82,7 @@ The parent's Done check is responsible for the union of (parent's own work) and 
 ```
 [ ] MODE declared (Local | Cloud | ambiguous)
 [ ] Code/build matches user intent; available tests pass
-[ ] Docs synced per docs-sync-before-finish.mdc (list edited files OR "reviewed N, no edits needed")
+[ ] Docs review per docs-sync-before-finish.mdc — per-file enumeration (every project .md/.txt with edited / checked: ok / skipped: <reason>; bare aggregate counts are forbidden)
 [ ] .gitignore reviewed and updated per docs-sync-before-finish.mdc (no stray secrets, build outputs, transient logs)
 [ ] Deletion-rename grep sweep per docs-sync-before-finish.mdc (clean OR list intentional carryovers OR N/A: nothing deleted/renamed)
 [ ] EXE packaging satisfied per exe-packaging-local-cloud.mdc (or N/A with reason)

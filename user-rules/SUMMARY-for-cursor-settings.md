@@ -23,7 +23,7 @@ MODE: ambiguous     (any mixed signals — STOP and ask the user; do NOT default
    ```
    [ ] MODE declared
    [ ] Code/build matches user intent; tests pass
-   [ ] All project **/*.md and **/*.txt reviewed and updated as needed
+   [ ] Docs review per-file enumeration (every project .md/.txt; edited / checked: ok / skipped: <reason>; bare aggregate counts forbidden)
    [ ] .gitignore reviewed (no stray secrets, build outputs, transient logs)
    [ ] Deletion-rename grep sweep — clean OR intentional carryovers listed (N/A only if nothing deleted/renamed this task)
    [ ] EXE packaging satisfied — or N/A
