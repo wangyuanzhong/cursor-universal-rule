@@ -1,6 +1,6 @@
 # cursor-universal-rule
 
-通用 Cursor **项目规则**包：把 `rules/` 和 `skills/` 复制到目标项目的 `.cursor/`，在 **本地 Desktop** 与 **Cloud Agent** 下共用同一套规则文件（文件中分「本地 / 云端」条款，而不是两套 Git 文件）。
+通用 Cursor **项目规则**包：把 `rules/` 复制到目标项目的 `.cursor/rules/`，在 **本地 Desktop** 与 **Cloud Agent** 下共用同一套规则文件（文件中分「本地 / 云端」条款，而不是两套 Git 文件）。
 
 仓库：<https://github.com/wangyuanzhong/cursor-universal-rule>
 
@@ -103,7 +103,7 @@ Cursor **Rule 是约束 Agent 的说明书**，不会在保存文件时自动执
 - 本机 `git hook` / 文件监视脚本（真·自动打包）
 - GitHub Actions（云端真· CI）
 
-本包把「该做什么」写进 **alwaysApply 项目规则**，并配合 **skills**（如 `github-actions-ci`），尽量让 Agent **每次会话都看到同一标准**。若要「绝不漏打包」，请同时在项目里保留 `build-release.ps1` 等脚本，并按 README 启用 hook / 监视。
+本包把「该做什么」写进 **alwaysApply 项目规则**，尽量让 Agent **每次会话都看到同一标准**。若要「绝不漏打包」，请同时在项目里保留 `build-release.ps1` 等脚本，并按 README 启用 hook / 监视。
 
 ## 安装到新项目
 
@@ -113,9 +113,8 @@ Cursor **Rule 是约束 Agent 的说明书**，不会在保存文件时自动执
 git clone https://github.com/wangyuanzhong/cursor-universal-rule.git /tmp/cursor-universal-rule
 
 cd /path/to/your-repo
-mkdir -p .cursor
-cp -r /tmp/cursor-universal-rule/rules   .cursor/rules
-cp -r /tmp/cursor-universal-rule/skills  .cursor/skills
+mkdir -p .cursor/rules
+cp /tmp/cursor-universal-rule/rules/*.mdc .cursor/rules/
 
 git add .cursor/
 git commit -m "chore(cursor): install universal rules pack"
@@ -127,9 +126,8 @@ PowerShell 等价写法：
 git clone https://github.com/wangyuanzhong/cursor-universal-rule.git $env:TEMP\cursor-universal-rule
 
 cd C:\path\to\your-repo
-New-Item -ItemType Directory -Path .cursor -Force | Out-Null
-Copy-Item "$env:TEMP\cursor-universal-rule\rules"  .cursor\rules  -Recurse -Force
-Copy-Item "$env:TEMP\cursor-universal-rule\skills" .cursor\skills -Recurse -Force
+New-Item -ItemType Directory -Path .cursor\rules -Force | Out-Null
+Copy-Item "$env:TEMP\cursor-universal-rule\rules\*.mdc" .cursor\rules\ -Force
 
 git add .cursor\
 git commit -m "chore(cursor): install universal rules pack"
@@ -138,7 +136,6 @@ git commit -m "chore(cursor): install universal rules pack"
 安装后：
 
 - `.cursor/rules/*.mdc` — 项目规则（进 Git，Cloud / 本地同源）
-- `.cursor/skills/github-actions-ci/SKILL.md` — CI 排错 playbook
 
 如果你的 `.gitignore` 之前整个目录忽略了 `.cursor/`（`.cursor/`、`.cursor/*`、`.cursor/**`），需要手工删掉这几行；本仓库的 `git-track-cursor-folder.mdc` 规则会强制 Agent 在第一次 push 前自检 `git check-ignore -v .cursor`，所以不删它会被 Agent 卡住报你。
 
@@ -161,7 +158,6 @@ cursor-universal-rule/
 ├── README.md
 ├── CHANGELOG.md                    # 本仓库的版本历史（按 versioning-and-changelog.mdc 维护）
 ├── rules/                          # 源规则（手工复制到项目的 .cursor/rules/）
-├── skills/github-actions-ci/       # CI 排错 playbook
 ├── templates/                      # 可选模板（CHANGELOG / CI workflow / 启用说明）
 ├── user-rules/                     # 可选：粘贴到 Cursor User Rules 的摘要
 └── .github/                        # 本仓库自校验 CI（与下游项目无关）

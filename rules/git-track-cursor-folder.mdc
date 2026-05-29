@@ -9,8 +9,8 @@ alwaysApply: true
 
 ## Before any commit or push — MUST
 
-1. Check: `git check-ignore -v .cursor .cursor/rules .cursor/skills`.
-2. If `.gitignore` has a blanket ignore (`.cursor/`, `.cursor/*`, `.cursor/**`), remove it. You may keep targeted ignores for genuinely local-only state (e.g. `.cursor/agent-transcripts/`). Do **not** ignore `.cursor/.local-auto-push` — it is a shared project-level marker (see `local-auto-push-current-branch.mdc`). Do not un-ignore `rules/` while leaving `skills/` ignored.
+1. Check: `git check-ignore -v .cursor .cursor/rules`.
+2. If `.gitignore` has a blanket ignore (`.cursor/`, `.cursor/*`, `.cursor/**`), remove it. You may keep targeted ignores for genuinely local-only state (e.g. `.cursor/agent-transcripts/`). Do **not** ignore `.cursor/.local-auto-push` — it is a shared project-level marker (see `local-auto-push-current-branch.mdc`).
 3. `git add .cursor/`. Confirm `git status` shows the intended changes.
 
 ## You MUST NOT

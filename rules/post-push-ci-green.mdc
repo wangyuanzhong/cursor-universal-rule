@@ -46,4 +46,14 @@ Parent verification of returned sub-agents: see `00-universal-core.mdc` § "Pare
 | Same failure after **2** fix-and-push rounds | Escalate with `gh run view --log-failed` excerpt. |
 | Required Windows job cannot run in this environment | Report; do **not** claim full CI green. |
 
-See `.cursor/skills/github-actions-ci/SKILL.md` for command-level details. If `gh` is unavailable, use the run URL / GitHub API with the same loop and stop rules.
+If `gh` is unavailable, use the run URL / GitHub API with the same loop and stop rules.
+
+## Common CI fix patterns
+
+| Symptom | Things to try |
+|---------|---------------|
+| Test name / assertion drift | Align test with the project's documentation (per `00-universal-core.mdc` "Project documentation" — discover what the project ships, do not assume filenames). If behavior intentionally changed, update the doc in the same change set. |
+| `robocopy` exit code 1 on success | Reset `$global:LASTEXITCODE = 0` after `robocopy` in PowerShell build scripts. |
+| npm / frontend | `cd ui && npm ci && npm run build`. |
+| dotnet | Match CI's `dotnet test` project paths locally on Windows when possible. |
+| Workflow syntax | Validate `on`, `paths`, job `needs`. Discover workflows: `ls .github/workflows/`, then read each YAML for `on.push` paths, job names, `runs-on`. |

@@ -13,6 +13,104 @@ will be called out in `### Breaking`.
 
 (Pending changes; the next push will close this section into a dated entry.)
 
+## [0.9.0] - 2026-05-29
+
+Bump reason: structural simplification — drops the `skills/` subsystem
+entirely. The maintainer asked: "this skill is meant to complement my
+rules, why can't we just make everything into rules?" Audit showed the
+skill was 49 lines but only ~5 lines were unique content (a "Common
+fix patterns" table); the other 44 lines duplicated rule content. The
+separation had no functional benefit in this project — Cursor's
+project-level `.cursor/skills/<name>/SKILL.md` is **not** the same
+primitive as user-level Cursor skills installed via plugins (which
+get a platform-injected `<available_skills>` section in the agent's
+system prompt); a project-level SKILL.md is just plain markdown that
+rules reference. So the only effect of separating it was creating a
+sync surface that kept going stale (`0.8.1` was a fix for exactly
+this).
+
+### Removed (BREAKING)
+- `skills/github-actions-ci/SKILL.md` — deleted. Its 5 lines of
+  unique content (the "Common fix patterns" table) are inlined into
+  `rules/post-push-ci-green.mdc` (see Added below). The other 44
+  lines duplicated rule content (Policy header / Post-push checklist
+  / EXE packaging expectations / Doc conflict guard / Stop conditions
+  / Sub-agent note) and are simply removed.
+- `skills/` directory — empty after the file removal, removed too.
+- `skills/upstream/**` mention from `rules/docs-sync-before-finish.mdc`
+  scope (was vestigial: anticipated but never used).
+
+### Added
+- `rules/post-push-ci-green.mdc` § **Common CI fix patterns** (new
+  table at the end). 5 rows preserving the practical fix patterns
+  the skill carried: test name / assertion drift; `robocopy` exit
+  code 1 on success in PowerShell; npm/frontend; dotnet; workflow
+  syntax (with the `ls .github/workflows/` discovery hint inline).
+
+### Changed (downstream-affecting)
+- `README.md` — install instructions simplified to a single
+  `cp /tmp/cursor-universal-rule/rules/*.mdc <project>/.cursor/rules/`
+  (PowerShell equivalent `Copy-Item` updated similarly). Coverage
+  table no longer lists a skill row. Directory tree drops `skills/`.
+  "重要说明" paragraph drops the "配合 skills" clause.
+- `user-rules/SUMMARY-for-cursor-settings.md` install instruction
+  updated (rules-only). Project-documentation definition's vendored-
+  path example generalized: was `vendored skills/upstream/**`, now
+  *"any vendored / upstream subtree the project explicitly excludes"*.
+- `rules/docs-sync-before-finish.mdc` scope similarly generalized;
+  `.gitignore`-review section's reminder now says "Keep `.cursor/rules/`
+  tracked" (was `.cursor/rules/` and `.cursor/skills/`).
+- `rules/git-track-cursor-folder.mdc` step 1 check trimmed to
+  `git check-ignore -v .cursor .cursor/rules` (was `.cursor .cursor/rules .cursor/skills`).
+  Step 2 lost the "do not un-ignore `rules/` while leaving `skills/`
+  ignored" sentence (no longer applicable).
+- `rules/post-push-ci-green.mdc` final "see SKILL.md" cross-reference
+  removed.
+
+### Breaking
+- Downstream projects that copied this pack should **delete** their
+  `.cursor/skills/github-actions-ci/SKILL.md` after re-syncing. The
+  skill's substantive content now lives in
+  `.cursor/rules/post-push-ci-green.mdc`.
+- New install command is `cp /tmp/cursor-universal-rule/rules/*.mdc
+  <your-project>/.cursor/rules/` — no more `cp -r skills/`.
+- Migration: `git rm -r .cursor/skills/` in your downstream project
+  after re-syncing rules. Restart the Cursor session.
+
+### Why this slipped before — and the structural fix
+The `0.7.2` and `0.8.0` rule changes propagated only into `rules/`,
+leaving the skill stale. The change-impact grep sweep introduced in
+`0.8.0` only covers identifiers touched in *that* round; it did not
+backfill historical debt. With `skills/` gone, this entire class of
+bug is structurally eliminated: the rule pack is now a single
+directory, single sync target. Any future rule rewrite affects one
+surface only.
+
+### Files / modules touched
+- `skills/github-actions-ci/SKILL.md` — deleted.
+- `skills/` — directory removed.
+- `rules/post-push-ci-green.mdc` — added Common CI fix patterns
+  table; removed final "see SKILL.md" cross-reference.
+- `rules/docs-sync-before-finish.mdc` — generalized vendored-path
+  language; removed `.cursor/skills/` track reminder.
+- `rules/git-track-cursor-folder.mdc` — step 1 + step 2 trimmed.
+- `README.md` — install instructions, coverage table description,
+  directory tree, "重要说明" paragraph all updated.
+- `user-rules/SUMMARY-for-cursor-settings.md` — generalized
+  vendored-path mention; install instruction updated.
+- `CHANGELOG.md` — this entry.
+
+### Verify
+- `ls skills/ 2>/dev/null` returns empty / no such directory.
+- `grep -RIn 'skills/\|github-actions-ci\|SKILL\.md\|\.cursor/skills' .`
+  returns hits **only** in `CHANGELOG.md` historical entries
+  (intentional carryovers describing past versions).
+- `python3 .github/scripts/validate.py` exits 0.
+- `wc -l rules/*.mdc` totals 448 (was 438 in `0.8.1`; +10 from the
+  inlined Common CI fix patterns table).
+- The Common CI fix patterns table appears at the end of
+  `rules/post-push-ci-green.mdc`.
+
 ## [0.8.1] - 2026-05-29
 
 Fixes a stale `skills/github-actions-ci/SKILL.md` that the maintainer

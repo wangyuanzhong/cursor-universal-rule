@@ -46,7 +46,7 @@ Any `blocked` → stop, report.
 
 ## "Project documentation" — what this term means
 
-The set of `**/*.md` and `**/*.txt` the project itself ships (excluding `node_modules/`, `dist/`, `bin/`, `obj/`, `.git/`, `vendor/`, large `models/`, vendored `skills/upstream/**`, gitignored paths). **Discover** by walking; do not assume specific filenames. Different projects use different conventions (root introduction file possibly named `README.md`/`INTRODUCTION.md`/non-English/none; `docs/`/`documentation/`/`spec/` subtrees; `AGENTS.md`/`CONTRIBUTING.md`/etc). Only `CHANGELOG.md` is pinned by name. When docs disagree on the same topic, prefer the one closer to the project root and to the user-facing surface.
+The set of `**/*.md` and `**/*.txt` the project itself ships (excluding `node_modules/`, `dist/`, `bin/`, `obj/`, `.git/`, `vendor/`, large `models/`, any vendored / upstream subtree the project explicitly excludes, gitignored paths). **Discover** by walking; do not assume specific filenames. Different projects use different conventions (root introduction file possibly named `README.md`/`INTRODUCTION.md`/non-English/none; `docs/`/`documentation/`/`spec/` subtrees; `AGENTS.md`/`CONTRIBUTING.md`/etc). Only `CHANGELOG.md` is pinned by name. When docs disagree on the same topic, prefer the one closer to the project root and to the user-facing surface.
 
 ## Conflict priority (when code, docs, tests, CI disagree)
 
@@ -112,4 +112,4 @@ Watch only runs triggered by the latest push on the current branch (`gh run list
 
 ---
 
-Install project rules by copying the rule pack's `rules/` and `skills/` directories into your project's `.cursor/`. See the [cursor-universal-rule README](https://github.com/wangyuanzhong/cursor-universal-rule#安装到新项目).
+Install project rules by copying the rule pack's `rules/*.mdc` files into your project's `.cursor/rules/`. See the [cursor-universal-rule README](https://github.com/wangyuanzhong/cursor-universal-rule#安装到新项目).

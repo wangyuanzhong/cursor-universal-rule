@@ -11,7 +11,7 @@ Before any `git push`, return-to-caller (sub-agent), or task-done: docs synced, 
 
 ### Scope
 
-Walk **all** `**/*.md` and `**/*.txt` in the repo. Skip only `node_modules/`, `dist/`, `bin/`, `obj/`, `.git/`, `vendor/`, large `models/`, `skills/upstream/**` (unless you changed that subtree). Do not skip a file because it looks "boring".
+Walk **all** `**/*.md` and `**/*.txt` in the repo. Skip only `node_modules/`, `dist/`, `bin/`, `obj/`, `.git/`, `vendor/`, large `models/`, and any vendored / upstream subtree the project explicitly excludes (unless you changed it). Do not skip a file because it looks "boring".
 
 ### What to verify per file
 
@@ -47,7 +47,7 @@ Before staging, run `git status --porcelain` + `git ls-files --others --exclude-
 | Local-only Cursor state | `.cursor/agent-transcripts/`, `terminals/` |
 | Secrets (see §3) | `.env*`, `*.pem`, `*.key`, `secrets.*`, `credentials*`, `id_rsa*` |
 
-Keep `.cursor/rules/` and `.cursor/skills/` tracked (`git-track-cursor-folder.mdc`). Do **not** ignore `.cursor/.local-auto-push` (the auto-push marker is shared, not local).
+Keep `.cursor/rules/` tracked (`git-track-cursor-folder.mdc`). Do **not** ignore `.cursor/.local-auto-push` (the auto-push marker is shared, not local).
 
 ## 3. Secret-leak scan — MUST (hard stop)
 
