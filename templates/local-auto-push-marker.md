@@ -18,8 +18,9 @@ The marker file is committed so all developers on the repo share the same policy
   the agent will:
   1. Run pre-push hygiene per `docs-sync-before-finish.mdc`: per-file
      enumeration of every project `.md`/`.txt`, `.gitignore` review,
-     secret-leak hard-stop scan, and a deletion / rename grep sweep
-     for any identifier removed by this task.
+     secret-leak hard-stop scan, and a change-impact grep sweep for
+     every user-visible identifier this task touched (added, renamed,
+     removed, or behavior-changed).
   2. Bump SemVer + write a `CHANGELOG.md` entry per
      `.cursor/rules/versioning-and-changelog.mdc`.
   3. `git add -A`, `git commit` (Conventional Commits), and

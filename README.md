@@ -10,11 +10,11 @@
 |---|------|----------|
 | 1 | EXE 项目：本地自动打包；云端 CI 必须含 release exe 构建 | `exe-packaging-local-cloud.mdc` |
 | 2 | push 后（云/本地都要）盯 GitHub Actions 直到绿；修复不得违反项目内 `.md`/`.txt` 中的功能/UI 定义 | `post-push-ci-green.mdc` |
-| 3 | 改动结束前（push 前，或无 push 要求则任务结束前）：遍历并升级项目内 `.md`/`.txt`、维护 `.gitignore`、扫描密钥泄漏 | `docs-sync-before-finish.mdc` |
+| 3 | 改动结束前（push/return/任务结束前）：逐文件枚举所有 `.md`/`.txt`、维护 `.gitignore`、扫描密钥泄漏、对触及的 user-visible identifiers 跑 change-impact grep sweep | `docs-sync-before-finish.mdc` |
 | 4 | `.gitignore` 不得阻止 `.cursor/` 进 Git | `git-track-cursor-folder.mdc` |
 | 5 | 本地：每次完整回复改了文件就自动 commit + push 到当前分支（仓库 opt-in） | `local-auto-push-current-branch.mdc` |
 | 6 | 每次 push 都 bump SemVer + 写详细 `CHANGELOG.md` entry；commit 用 Conventional Commits | `versioning-and-changelog.mdc` |
-| — | 总纲：模式声明、Done check、冲突优先级、子 agent push 策略 | `00-universal-core.mdc` |
+| — | 总纲：每个 agent 都跑完整规则、模式声明、Done check、冲突优先级、子 agent 场景 + parent verification | `00-universal-core.mdc` |
 
 ## 规则风格（v2）
 
@@ -72,23 +72,23 @@ git commit -m "chore(cursor): enable local auto-push for current branch"
 
 仓库初始化用 `templates/CHANGELOG-initial.md` 作起点。
 
-## 子 agent 是否可以 push
+## 每个 agent 都跑完整规则（含子 agent）
 
-`00-universal-core.mdc` 区分两种场景：
+`00-universal-core.mdc` 顶部"Who counts as an agent"明确：每次规则被读到的执行都是一次完整的 agent run——顶层 agent 或经 Task 工具 spawn 的子 agent，**对自己 scope 内的工作都要跑完整规则**，没有"我是子 agent 所以可以省略"这种 shortcut。一个子 agent 的"一轮"在它 return 给上级时结束，那一刻它必须已经：
 
-- **Scenario A — 隔离 worktree 的子 agent**（`best-of-n-runner`，或子 agent 的 `git rev-parse --git-dir` 与顶层不同）：可以 commit + push 自己的分支。**返回上级前必须自己完成**全部 4 件事：
-  - 自己写 `CHANGELOG.md` entry；
-  - 自己跑 pre-push hygiene（含 docs review **逐文件枚举** + deletion-rename grep sweep）；
-  - **自己盯 CI 到绿**（或文档化的 stop condition），不许把盯 CI 推给上级；
-  - 自己输出一份完整的 Done check。
+1. 在自己 plan 里 declare 了 `MODE: ...`；
+2. 跑过 pre-push hygiene（per-file docs 枚举 + `.gitignore` review + secret-leak 扫描 + change-impact grep sweep）；
+3. 列出本次 work 触及的 user-visible identifiers，并对它们跑了 grep sweep；
+4. 在 return message 里输出 verbatim Done check。
 
-  环境上跑不动其中任何一件事（没有 `gh`、turn 预算太短等），子 agent **不许 push**——把改动留在工作区让顶层 push，或直接 `blocked: <reason>` 返回。
+子 agent 的**场景 (scenario)** 只决定它是否 commit/push、是否写 `CHANGELOG.md`、是否盯 CI——**不**决定上面这 4 件事是否要做。
 
-- **Scenario B — 与顶层共享工作区的子 agent**（默认的 `generalPurpose`/`explore`）：**禁止** `git add`/`git commit`/`git push`。改动留在工作区，由顶层 agent 在自己回复结束时统一 commit + push、跑 Done check、盯 CI。
+- **Scenario A** — 隔离 worktree 的子 agent（`best-of-n-runner`，或子 agent 的 `git rev-parse --git-dir` 与顶层不同）：可以 commit + push 自己的分支。如果它 push，**自己**写 CHANGELOG entry、**自己**盯 CI 到绿、return 时报 run IDs。环境跑不动这些（没 `gh`、turn 预算太短等）→ 不许 push，留改动给顶层或 `blocked: <reason>` 返回。
+- **Scenario B** — 与顶层共享工作区的子 agent（默认的 `generalPurpose`/`explore`）：禁止 `git add`/`git commit`/`git push`。改动留在工作区，由顶层 agent 统一 commit + push、写 unified `CHANGELOG.md`、盯 CI。**但子 agent 仍然要跑上面 1–4，把 hygiene 和 grep sweep 报告塞进 return message**——顶层依赖这份报告做 verification。
 
 无法判断时按 Scenario B。
 
-**顶层 agent 验收义务（强制）**：子 agent 返回后，顶层 agent 在宣告自己任务完成前必须核查：(1) 子 agent 输出了 verbatim Done check 且没有 `blocked`；(2) 子 agent 若 push，则其分支的 CI 已到绿或 stop condition；(3) 子 agent 若改动了项目文件，则附了 CHANGELOG entry；(4) docs review 是逐文件枚举的，不是 `Reviewed N docs, no edits needed`。任何一项缺失即 `blocked: sub-agent did not <X>`，由顶层接手补救后再宣告完成。
+**顶层 agent 的 Parent verification（强制）**：子 agent 返回后核查：(1) verbatim Done check 在 + 无 `blocked`；(2) MODE 已声明；(3) 含 hygiene + change-impact 报告（per-file 枚举 + identifiers-touched 列表）；(4) Scenario A 才查：CI 已到绿或 stop condition；(5) Scenario A 才查：若文件有变更，CHANGELOG entry 在。任何一项缺失 → `blocked: sub-agent did not run full agent loop`，**不要默默替子 agent 补做**——要么 escalate 给用户，要么自己补但同时告知用户该子 agent 类型对此类任务可能不合适。
 
 ## CI watch — 谁 push 谁盯，不可关闭
 

@@ -13,6 +13,149 @@ will be called out in `### Breaking`.
 
 (Pending changes; the next push will close this section into a dated entry.)
 
+## [0.8.0] - 2026-05-29
+
+Bump reason: two new contracts that broaden agent behavior — every
+agent (incl. sub-agents) runs the full rule loop over its own scope
+of work; deletion-rename grep sweep is generalized to cover any
+change to a user-visible identifier (added, renamed, removed, or
+behavior-changed). Together these address the maintainer's two
+real-world failure reports: sub-agents skipping the rules ("not
+treating themselves as agents"), and docs lagging changes that
+weren't deletions. Done in the same push as a deeper compression
+pass that nets the rule pack at 438 lines (−22% from 0.7.3's 563)
+even after the new content was added.
+
+### Added
+- `rules/00-universal-core.mdc` § **Who counts as an agent** (new top
+  section, before mode detection). Establishes that every invocation
+  of the rules — top-level agent or sub-agent via Task — is a
+  complete agent run that executes all applicable rules over its own
+  scope of work, as if independent. The agent's "round" ends when it
+  returns to its caller; at that moment it MUST have declared
+  `MODE: ...`, run pre-push hygiene over the files it touched (even
+  if it is not pushing), listed identifiers-touched and run the
+  change-impact grep sweep, and output a verbatim Done check. The
+  scenario gate (A/B below) only governs commit/push, CHANGELOG, and
+  CI ownership — not the four core obligations.
+- `rules/docs-sync-before-finish.mdc` § 4 **Change-impact grep sweep**
+  (replaces and broadens the earlier "Deletion / rename grep sweep").
+  Triggers whenever the change set touches any user-visible
+  identifier — added, renamed, removed, or behavior-changed.
+  Mandates an "Identifiers touched this task" preamble at the top of
+  the `Docs review:` block listing each touched identifier and how it
+  was touched, then a project-wide grep across text files for each
+  with reconciliation of every hit.
+- `rules/00-universal-core.mdc` Done check gains an
+  `Identifiers-touched listed + change-impact grep sweep clean`
+  item (replaces the old `Deletion-rename grep sweep` item) and a
+  Scenario-B-aware CHANGELOG line (`Scenario B sub-agents: N/A —
+  parent writes`).
+- `rules/00-universal-core.mdc` § **Parent verification** gains an
+  explicit MODE-declared check (item 2) and an explicit "Don't
+  silently re-run for the sub-agent" failure-mode escalation policy.
+
+### Changed
+- `rules/docs-sync-before-finish.mdc` Required-report `Docs review:`
+  format now starts with an **Identifiers touched this task**
+  preamble before the per-file enumeration, so the agent must list
+  what it changed before it walks files.
+- `rules/post-push-ci-green.mdc` parent-verification section is now
+  a single one-line cross-reference to `00-universal-core.mdc` (the
+  policy lives in one place — already true since `0.7.0`, kept that
+  way and tightened further).
+- `rules/local-auto-push-current-branch.mdc` precondition list
+  references "change-impact grep sweep" instead of "deletion grep
+  sweep".
+- `templates/local-auto-push-marker.md` pre-push hygiene description
+  references "change-impact grep sweep" with the broadened scope.
+- `README.md` "子 agent 是否可以 push" section retitled to **每个
+  agent 都跑完整规则（含子 agent）** and rewritten to reflect the
+  new "Who counts as an agent" framing — Scenario B sub-agents now
+  explicitly required to run MODE / hygiene / change-impact grep
+  sweep / Done check before returning, and the parent verification
+  list updated to match the new five-check policy.
+- `README.md` 覆盖能力 table line 3 reflects the broadened pre-push
+  hygiene scope (per-file enumeration + change-impact grep sweep).
+- `user-rules/SUMMARY-for-cursor-settings.md` rewritten end-to-end
+  to mirror the new "Who counts as an agent" framing; conflict
+  priority unchanged but block ordering updated; Done check item
+  list mirrors `00-universal-core.mdc` exactly; sub-agent policy
+  block makes Scenario B obligations explicit.
+
+### Compression (refactor; signal-preserving)
+On top of the new contracts, this push also compresses prose, format
+mocks, and duplicates across all rules. All MUST / MUST NOT items,
+canonical `blocked: <reason>` strings, anti-hallucination signals,
+and procedural numbered lists are preserved. Per-file before/after:
+
+```
+rules/00-universal-core.mdc                  86 → 86 lines  (added "Who counts as an agent" ~12 lines, compressed ~12 lines elsewhere; net 0)
+rules/docs-sync-before-finish.mdc           162 → 123 lines  (−24%)
+rules/exe-packaging-local-cloud.mdc          52 → 33 lines  (−37%)
+rules/git-track-cursor-folder.mdc            41 → 20 lines  (−51%)
+rules/local-auto-push-current-branch.mdc     52 → 46 lines  (−12%)
+rules/post-push-ci-green.mdc                 61 → 49 lines  (−20%)
+rules/versioning-and-changelog.mdc          109 → 81 lines  (−26%)
+                                            ───────────────
+total                                       563 → 438 lines  (−22%)
+```
+
+### What did NOT change
+- Done check structure (10 items, output verbatim); only one row's
+  wording was replaced (deletion-rename → identifiers-touched +
+  change-impact) and one row was clarified for Scenario B
+  (CHANGELOG).
+- Mode detection algorithm (three signals, three states).
+- Conflict priority (4-step).
+- Scenario A four return-time obligations.
+- Per-file docs review enumeration spec (status set, grouping,
+  Total).
+- Secret-leak hard stop pattern list.
+- Push procedure semantics.
+- Type → SemVer mapping table.
+- Version bump rules table.
+- Initialization priority list for joining mid-project.
+
+### Files / modules touched
+- `rules/00-universal-core.mdc` — added "Who counts as an agent" §,
+  compressed mode detection + MUST + MUST NOT, restructured sub-
+  agent scenario into a thinner gate that defers to the new top §,
+  parent verification gains MODE-declared check.
+- `rules/docs-sync-before-finish.mdc` — added Identifiers-touched
+  preamble to required output, broadened deletion grep sweep into
+  change-impact grep sweep, compressed `.gitignore` review +
+  secret-leak scan + intro.
+- `rules/exe-packaging-local-cloud.mdc` — compressed trigger gate +
+  Local + Cloud sections (file lists inline, fence blocks
+  consolidated).
+- `rules/git-track-cursor-folder.mdc` — compressed steps to inline
+  form, dropped the "Tip" duplicate paragraph.
+- `rules/local-auto-push-current-branch.mdc` — compressed
+  preconditions and push procedure (one-liners), updated grep-sweep
+  reference.
+- `rules/post-push-ci-green.mdc` — compressed Who-watches and the
+  red-CI procedural item.
+- `rules/versioning-and-changelog.mdc` — compressed Authoritative
+  artifact + Initialization + Conventional Commits + Language +
+  Tagging.
+- `templates/local-auto-push-marker.md` — sweep reference updated.
+- `README.md` — sub-agent section rewritten; coverage table updated.
+- `user-rules/SUMMARY-for-cursor-settings.md` — full rewrite to
+  mirror new framing.
+- `CHANGELOG.md` — this entry.
+
+### Verify
+- `wc -l rules/*.mdc` totals 438 (was 563).
+- `python3 .github/scripts/validate.py` exits 0.
+- `grep -RIn 'Deletion-rename\|Deletion / rename\|deletion grep sweep' .`
+  returns hits only inside `CHANGELOG.md` historical entries (intentional).
+- `grep -RIn 'Who counts as an agent\|change-impact grep sweep' rules/`
+  returns the new section / sweep across the rule files.
+- The Done check block in `rules/00-universal-core.mdc` lists 10
+  items including `Identifiers-touched listed + change-impact grep
+  sweep clean`.
+
 ## [0.7.3] - 2026-05-28
 
 Trim pass. After the maintainer pointed out that the rule pack had
