@@ -13,6 +13,82 @@ will be called out in `### Breaking`.
 
 (Pending changes; the next push will close this section into a dated entry.)
 
+## [0.8.1] - 2026-05-29
+
+Fixes a stale `skills/github-actions-ci/SKILL.md` that the maintainer
+caught immediately after `0.8.0` was pushed.
+
+The skill was inconsistent with the rule pack at three layers:
+
+1. It hard-coded `README` / `docs` / `manifest` filenames in the
+   "Common fix patterns" and "Doc conflict guard" sections — `0.7.2`
+   refactored every rule file to be naming-agnostic by referencing
+   *the project's documentation* (defined in `00-universal-core.mdc`),
+   but the skill never got that update.
+2. The post-push checklist did not mention the `fix(ci): <reason>`
+   Conventional Commits prefix that `post-push-ci-green.mdc` has
+   required since `0.7.0`.
+3. The skill did not reflect the `0.7.0` "whoever pushed watches CI"
+   contract or the `0.8.0` "Who counts as an agent" framing —
+   nothing about Scenario A sub-agents watching CI on their own
+   branches, or the change-impact grep sweep that `docs-sync-before-
+   finish.mdc` §4 now mandates before merging a CI-only fix.
+
+In short: I marked the file `checked: ok` in `0.7.2` / `0.7.3` /
+`0.8.0` Docs review enumerations without actually reconciling it
+against the rule changes. The change-impact grep sweep introduced in
+`0.8.0` wouldn't have caught it either, because the stale references
+in the skill predate the identifiers I touched in those rounds — they
+are historical debt from `0.7.2` that survived because nobody
+re-checked. The real fix is human/agent discipline: when checking a
+file as `checked: ok`, the agent should briefly state *why* it is
+still ok given the current change set. (Considering this as a follow-
+up rule strengthening.)
+
+### Fixed
+- `skills/github-actions-ci/SKILL.md` policy header — now references
+  both `post-push-ci-green.mdc` (CI watch contract) **and**
+  `00-universal-core.mdc` (who counts as an agent; conflict
+  priority; project-documentation definition). New explicit line
+  that whoever pushed (top-level agent or Scenario A sub-agent)
+  owns the playbook execution before returning to the caller.
+- `skills/github-actions-ci/SKILL.md` Post-push checklist step 5 —
+  now references Conventional Commits and the `fix(ci): <reason>`
+  prefix from `versioning-and-changelog.mdc`.
+- `skills/github-actions-ci/SKILL.md` "Common fix patterns" `Test
+  name / assertion drift` row — was *"Align test with `README` /
+  `docs` / manifest"*; now *"Align test with the project's
+  documentation (per `00-universal-core.mdc` — discover what the
+  project ships, do not assume specific filenames)"*.
+- `skills/github-actions-ci/SKILL.md` "Doc conflict guard" — was
+  *"grep or read relevant `docs/` and root `README.md`"*; now
+  *"run the change-impact grep sweep from `docs-sync-before-finish.mdc`
+  §4 over every user-visible identifier the fix touches. Reconcile
+  every hit in the project's documentation"*. Closing sentence adds
+  the *never weaken docs / tests / UI strings to greenwash CI*
+  reminder.
+
+### Added
+- `skills/github-actions-ci/SKILL.md` new **Sub-agent note** at the
+  end — Scenario A sub-agent runs this playbook on its own branch
+  (`gh run list --branch <its-branch>`); the parent verifies CI
+  status as part of its Done check.
+
+### Files / modules touched
+- `skills/github-actions-ci/SKILL.md` — reauthored to align with the
+  v0.8.0 contracts above.
+- `CHANGELOG.md` — this entry.
+
+### Verify
+- `grep -RIn 'README\.md\|docs/\*\*' skills/` returns no live "treat
+  this as the canonical doc name" mentions; the only README/docs
+  references in `skills/` are within the new wording that
+  explicitly defers to `00-universal-core.mdc` "Project
+  documentation".
+- `grep -RIn 'fix(ci):' skills/` returns the post-push checklist
+  step 5 line.
+- `python3 .github/scripts/validate.py` exits 0.
+
 ## [0.8.0] - 2026-05-29
 
 Bump reason: two new contracts that broaden agent behavior — every
