@@ -13,6 +13,96 @@ will be called out in `### Breaking`.
 
 (Pending changes; the next push will close this section into a dated entry.)
 
+## [0.9.1] - 2026-05-29
+
+The maintainer reported a real-world failure pattern after `0.9.0`
+shipped: in their downstream project, the agent does not produce the
+Done check spontaneously. Reminding at end of message → compliance
+high, agent produces a Done check. No reminder → the agent silently
+skips. Asking "did you run the Done check?" → the agent then runs it
+honestly and reports many items not done.
+
+Diagnosis: this is not a knowledge problem (the agent knows the rule
+and can run the check when prompted); it is an **attention** problem.
+The Done check is reachable in `00-universal-core.mdc` but appears as
+"item 4 of 4" in the early `Who counts as an agent` section and as
+`You MUST` item 1 mid-file — both weighted equal with other MUSTs.
+The user's actual task is more recent / salient by reply time, so
+the Done check loses attention.
+
+Three surgical changes in this release try to push the spontaneous-
+Done-check rate from the user's observed ~20–30% baseline up toward
+~60–70%. They do not pretend to reach 100% — that ceiling is the
+LLM's attention budget and Cursor's lack of platform-level
+enforcement. The user's habit of one-line reminder at end of any
+session remains the practical enforcement floor.
+
+### Added
+- `rules/00-universal-core.mdc` new top section **"The single most
+  important rule"** (above "Who counts as an agent"). Frames the
+  Done check as the irreducible signature of the contract:
+  > Every reply that touched files MUST end with the verbatim Done
+  > check. The Done check is your signature that you ran the rest
+  > of these rules — skipping it means you skipped the contract,
+  > regardless of what else you did.
+  > 
+  > If the user has to ask "did you run the Done check?" — you have
+  > already failed. Output it spontaneously, before being asked.
+- `rules/00-universal-core.mdc` Mode-detection block now requires
+  **two** lines in the plan (was one):
+  ```
+  MODE: <Cloud | Local | ambiguous — blocking>
+  Closing: I will end this reply with the verbatim Done check.
+  ```
+  The `Closing:` line is a commitment device — once written, the
+  final message must match.
+- `rules/00-universal-core.mdc` `You MUST NOT` gains a new top bullet:
+  > Wait for the user to ask "did you run the Done check?" before
+  > producing it. By the time you are asked, you have already failed.
+  > Output the Done check spontaneously at the end of every reply
+  > that touched files.
+
+### Changed
+- `user-rules/SUMMARY-for-cursor-settings.md` mirrors all three
+  changes: new "The single most important rule" section at top,
+  Mode detection requires the two-line plan, MUST NOT clause about
+  spontaneous Done check.
+- `README.md` "规则风格 (v2)" point 1 — was "在计划中写一行
+  `MODE: ...`"; now "在计划里写**两行**（都强制）: `MODE: ...` 和
+  `Closing: I will end this reply with the verbatim Done check.`".
+  Point 2 strengthened to "**主动**逐项打勾输出 Done check ...
+  **不能等用户问 ... 才补做** ——被问到时已经违约".
+
+### Why this won't fix everything
+This addresses **salience** of the Done-check requirement, not
+**enforcement**. Cursor still does not platform-validate that a
+reply contains the Done check. Long tasks, weak models, rushed
+sessions, and context-pressure can still squeeze the rule out. The
+empirical verification stays the same as before: read each agent
+reply and look for `MODE: ...`, the verbatim Done check block, and
+the per-file Docs review. If the agent forgets, your one-line
+reminder is the actual enforcement floor.
+
+### Files / modules touched
+- `rules/00-universal-core.mdc` — new top "single most important
+  rule" section; Mode detection plan template now two lines;
+  MUST NOT gains spontaneous-Done-check clause.
+- `user-rules/SUMMARY-for-cursor-settings.md` — mirrors the three
+  rule changes.
+- `README.md` — "规则风格 (v2)" points 1 and 2 updated.
+- `CHANGELOG.md` — this entry.
+
+### Verify
+- `head -20 rules/00-universal-core.mdc` shows the "The single most
+  important rule" section as the first content after the title.
+- The Mode detection block in `rules/00-universal-core.mdc` requires
+  two lines (`MODE:` and `Closing:`) in the plan.
+- `You MUST NOT` first bullet in `rules/00-universal-core.mdc`
+  forbids waiting for the user to ask before producing the Done
+  check.
+- `python3 .github/scripts/validate.py` exits 0.
+- `wc -l rules/*.mdc` totals 464 (was 448; +16 from the additions).
+
 ## [0.9.0] - 2026-05-29
 
 Bump reason: structural simplification — drops the `skills/` subsystem

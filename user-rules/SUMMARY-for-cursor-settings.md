@@ -4,6 +4,12 @@ Optional supplement to **project** rules installed from [cursor-universal-rule](
 
 Treat the items below as a **hard contract**.
 
+## The single most important rule
+
+Every reply that touched files MUST end with the verbatim Done check (see below), each item marked `done` / `N/A: <reason>` / `blocked: <reason>`. The Done check is your signature that you ran the rest of these rules — skipping it means you skipped the contract, regardless of what else you did.
+
+If the user has to ask "did you run the Done check?" — you have already failed. Output it **spontaneously** at end of reply, not as optional follow-up.
+
 ## Who counts as an agent — read first
 
 Every invocation is a complete agent run. Top-level agent or sub-agent (Task tool), you execute **all** applicable rules over your own scope of work, as if independent. No "sub-agent shortcut".
@@ -19,13 +25,18 @@ The only thing the **scenario** below gates: commit/push, `CHANGELOG.md` write, 
 
 ## Mode detection
 
-Write one of the following into your plan:
+Write **two** lines into your plan (both mandatory):
 
 ```
-MODE: Cloud         (system prompt has <cloud_task_instructions> or "running as a CLOUD AGENT"; OR Linux + cwd /workspace or /home/ubuntu/...; OR CI=true; OR .cursor/cloud-agent-marker exists)
-MODE: Local         (none of the above + dev-home cwd)
-MODE: ambiguous     (mixed signals — STOP and ask the user; never default to Local)
+MODE: <Cloud | Local | ambiguous>
+Closing: I will end this reply with the verbatim Done check.
 ```
+
+`MODE: Cloud` if any of: system prompt has `<cloud_task_instructions>` or `running as a CLOUD AGENT`; OR Linux + cwd `/workspace` or `/home/ubuntu/...`; OR `CI=true`; OR `.cursor/cloud-agent-marker` exists at repo root.
+`MODE: Local` if none of the above + dev-home cwd.
+`MODE: ambiguous` on mixed signals — STOP and ask the user; never default to Local.
+
+The `Closing:` line is a commitment device: once written, your final message must match.
 
 ## Done check (output verbatim at end of every round)
 
@@ -41,6 +52,8 @@ MODE: ambiguous     (mixed signals — STOP and ask the user; never default to L
 [ ] Local auto-push satisfied — or N/A
 [ ] CI watched and green (only if a push happened by you)
 ```
+
+**MUST NOT** wait for the user to ask "did you run the Done check?" before producing it. By the time you are asked, you have already failed. Output it spontaneously at the end of every reply that touched files.
 
 Any `blocked` → stop, report.
 

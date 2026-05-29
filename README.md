@@ -27,8 +27,8 @@
 
 `00-universal-core.mdc` 还要求 Agent：
 
-1. 在计划中写一行 `MODE: Local` / `MODE: Cloud` / `MODE: ambiguous — blocking`，单次任务只判定一次；判定算法见该文件。
-2. 在最终消息里**逐项打勾输出 Done check**（`done` / `N/A: <reason>` / `blocked: <reason>`），任何 `blocked` 必须停下来报给用户，不得越过。
+1. 在计划里写**两行**（都强制）：`MODE: Local | Cloud | ambiguous` 和 `Closing: I will end this reply with the verbatim Done check.`。后一行是 commitment device，写下来之后最终消息必须匹配。
+2. 在最终消息里**主动逐项打勾输出 Done check**（`done` / `N/A: <reason>` / `blocked: <reason>`），任何 `blocked` 必须停下来报给用户。**不能等用户问"你跑 Done check 了吗"才补做**——被问到时已经违约。
 
 ## 模式判定（Cloud vs Local）
 
