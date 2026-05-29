@@ -13,6 +13,101 @@ will be called out in `### Breaking`.
 
 (Pending changes; the next push will close this section into a dated entry.)
 
+## [0.7.3] - 2026-05-28
+
+Trim pass. After the maintainer pointed out that the rule pack had
+grown to 725 lines / ~5840 words across 7 `alwaysApply: true` files,
+this iteration removes prose-heavy material that does not change any
+contract. All MUST / MUST NOT items, the Done check (verbatim), the
+per-file docs enumeration, the deletion-rename grep sweep, the
+secret-leak scan, the sub-agent policy, and the who-watches-CI
+contract are unchanged.
+
+Net effect: **725 → 563 lines (−22%)**, **5840 → 4398 words (−25%)**.
+
+### Changed
+- `rules/00-universal-core.mdc` — "Project documentation" definition
+  reduced from a 17-line block (with four illustrative bullet lists)
+  to a single-paragraph definition. Sub-agent commit/push policy
+  trimmed from a 22-line nested-bullet section to two scenario
+  bullets. Parent-verification subsection compressed (kept all four
+  checks intact). 110 → 86 lines.
+- `rules/post-push-ci-green.mdc` — "Who watches" section compressed
+  from 13 lines to 4. Parent-verification section replaced with a
+  one-line cross-reference to `00-universal-core.mdc` (consolidation;
+  the policy lived in two places and was duplicated). Migration note
+  about `.cursor/.local-skip-post-push-ci` removed (the same note is
+  in `README.md`). 77 → 61 lines.
+- `rules/docs-sync-before-finish.mdc` — intro paragraph compressed
+  from 6 lines to 1. "What to do" / "MUST NOT" prose tightened.
+  Secret-leak scan rationale paragraph trimmed. Deletion-rename grep
+  sweep intro reduced from 4 lines to 1. Required-report section
+  loses the second concrete worked example (kept the placeholder
+  template, which carries the "filenames are illustrative" message
+  more directly). 195 → 162 lines.
+- `rules/versioning-and-changelog.mdc` — header preamble trimmed.
+  "Joining mid-project — example" worked example deleted (the
+  algorithm in the section above was already complete; the example
+  duplicated information). Entry shape replaced: was a 28-line
+  fenced markdown mock with one-line `- ...` placeholders for every
+  subsection; now a 10-line schema listing required section names
+  (`### Added | Changed | Fixed | Removed`, `### Breaking`,
+  `### Files / modules touched`, `### Verify`) with inline guidance.
+  "What 'detailed enough' means" reduced from 9 bullets to a single
+  paragraph; "Banned entry content" reduced from 5 bullets to one
+  comma-separated line. 160 → 109 lines.
+- `rules/local-auto-push-current-branch.mdc` — intro paragraph and
+  trigger-gate prose compressed. Preconditions list rewritten as
+  five one-liners (was multi-line bullets). Push procedure
+  compressed from 26 lines (one fenced bash block per step) to 6
+  lines (numbered list with inline commands). "How to enable in a
+  repo" section deleted (the same content lives in
+  `templates/local-auto-push-marker.md`). MUST NOT list compressed.
+  90 → 52 lines.
+- `user-rules/SUMMARY-for-cursor-settings.md` — migration note about
+  `.cursor/.local-skip-post-push-ci` removed (kept only in
+  `README.md`).
+
+### What did NOT change
+- Done check in `00-universal-core.mdc` (10 items, verbatim).
+- All MUST / MUST NOT bullets in every rule.
+- Mode-detection algorithm (three signals, three states).
+- Sub-agent four-item return-time obligations (Scenario A).
+- Parent verification four checks (Done check / CI / CHANGELOG /
+  docs enumeration).
+- Per-file docs review enumeration spec (status set, grouping rules,
+  `Total:` requirement).
+- Deletion-rename grep sweep MUST.
+- Secret-leak hard stop list of patterns.
+- Push procedure: `add -A` → Conventional Commits → `push -u origin
+  HEAD` (first push) or `push origin HEAD` (subsequent), watch CI.
+- Type → SemVer mapping table.
+- Version bump rules table.
+- Initialization priority list for joining mid-project.
+
+### Files / modules touched
+- `rules/00-universal-core.mdc` — compressed sections noted above.
+- `rules/post-push-ci-green.mdc` — compressed + parent-verif
+  consolidated.
+- `rules/docs-sync-before-finish.mdc` — compressed prose, dropped
+  one example.
+- `rules/versioning-and-changelog.mdc` — compressed entry shape,
+  dropped Joining example.
+- `rules/local-auto-push-current-branch.mdc` — compressed
+  throughout, dropped "How to enable" section.
+- `user-rules/SUMMARY-for-cursor-settings.md` — dropped migration
+  parenthetical.
+- `CHANGELOG.md` — this entry.
+
+### Verify
+- `wc -l rules/*.mdc` totals 563 (was 725).
+- `python3 .github/scripts/validate.py` exits 0 — no rule has
+  invalid frontmatter, no cross-reference broken.
+- `grep -RIn 'You MUST\|MUST NOT' rules/` shows the same set of
+  hard contracts as before; no MUST removed.
+- The Done check block in `rules/00-universal-core.mdc` is
+  byte-identical to the previous version (10 items).
+
 ## [0.7.2] - 2026-05-28
 
 Removes the implicit assumption baked into multiple rules that every

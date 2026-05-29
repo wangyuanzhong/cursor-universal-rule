@@ -5,22 +5,11 @@ alwaysApply: true
 
 # Pre-push hygiene (mandatory)
 
-This rule covers four things you must do before any `git push` or before declaring a task done:
-
-1. **Project documentation** is consistent with the changes (`.md`, `.txt`).
-2. **`.gitignore`** correctly excludes things that must not be tracked.
-3. **No secret-shaped file** is about to land in the commit.
-4. **No stale references** to deleted / renamed identifiers remain in the project.
+Before any `git push` or task-done declaration: docs synced, `.gitignore` correct, no secrets staged, no stale references to deleted/renamed identifiers.
 
 ## When this rule fires
 
-Run it **before** any of:
-
-- `git push`
-- Telling the user the task is finished (no push in scope)
-- Marking the task complete in the Done check
-
-Also run it after any substantive code / config / UI change, even if the user only asked for a small fix.
+Before `git push`, before declaring the task finished, or before marking the task complete in the Done check. Also after substantive code/config/UI changes even if the user asked only for a small fix.
 
 ---
 
@@ -46,17 +35,15 @@ Do **not** skip files because they look "boring" (e.g. small READMEs in subfolde
 
 ### What to do
 
-- **Open each file** under the scope above. "Walk" means actually read the file, not glance at the path. If your tool budget cannot afford reading every file, you must still enumerate them in the report (see below) — the enumeration forces you to either confirm or block.
-- Update stale sections in **this same task**. Match the file's existing language and tone.
+- **Open and read** every file in scope. The required-report enumeration below forces this; you cannot skip files silently.
+- Update stale sections in this same task. Match the file's language.
 - Add a `CHANGELOG.md` entry per `versioning-and-changelog.mdc` whenever any file changed.
-- Fix the **code** when docs reflect intended product but code drifted.
-- Fix the **docs** when code is correct and docs are stale.
+- Fix the **code** when docs reflect intended product but code drifted; fix the **docs** when code is correct and docs are stale.
 
 ### MUST NOT
 
 - Push or declare done with a known doc/code mismatch.
-- Update only the most obvious doc (e.g. just the root introduction file) and silently leave other in-scope docs unread. The walk above must cover **every** project `.md` / `.txt` in scope, not just whichever file you opened first.
-- Use a single aggregate count like `Reviewed 12 docs, no edits needed` to skip enumeration. The required output below requires **every file** to be accounted for individually (or grouped only when all files in a group share the same status — see report format).
+- Use any aggregate-count shortcut (`Reviewed N docs, no edits needed`). Per-file enumeration only.
 
 ---
 
@@ -99,17 +86,15 @@ If **any** of the following would be staged (and is **not** already in `.gitigno
 - `secrets.*`, `secret.*`, `credentials*`, `credentials.json`, `*.kdbx`
 - `aws_credentials`, `gcp-credentials*.json`, `azure-credentials*.json`, `service-account*.json`
 
-Treat this as a **safety stop**, not a normal failure: do **not** try to "auto-add to `.gitignore` and continue." Tell the user what was about to leak and let them decide. (Once they confirm and the file is gitignored or removed, you may continue.)
+This is a **safety stop**: do not auto-add to `.gitignore` and continue. Report what was about to leak; once the user confirms the file is gitignored or removed, you may continue.
 
-Files matching the **template** suffixes above (`.env.example` etc.) are fine to commit and do not trigger the stop.
+Template suffixes (`.env.example` etc.) do not trigger the stop.
 
 ---
 
 ## 4. Deletion / rename grep sweep — MUST
 
-The per-file walk in §1 catches drift in the files you remembered to look at. This step catches stale references in the files you didn't think to re-read.
-
-**When this step fires.** Whenever the change set in this task **deletes**, **renames**, or **removes** any user-visible identifier:
+When the change set deletes, renames, or removes any user-visible identifier:
 
 - A file or directory (e.g. `scripts/install-universal-rules.ps1`, `scripts/`).
 - A script / command name (e.g. `build-release.ps1`).
@@ -148,48 +133,30 @@ If the identifier is short and noisy (e.g. `id`, `x`, single letters), grep on a
 
 ## Required report (in your final message)
 
-Include all of the four sub-reports below. **The aggregate-count shortcut for docs review is gone**; enumeration is mandatory.
-
 ### Docs review (enumeration — mandatory)
 
-Output a `Docs review:` section that accounts for **every** project `.md` and `.txt` file in the scope above. For each file (or grouped subdirectory, see below), give exactly one status:
+Output a `Docs review:` section accounting for **every** project `.md`/`.txt` in scope (no aggregate-count shortcut). Per file, exactly one status:
 
-- `edited: <one-line summary of the edit>` — file was modified in this task.
-- `checked: ok` — file was read; nothing in it conflicts with this change set.
-- `skipped: <reason>` — explicit excluded path (e.g. `vendored upstream`, `large model artifact`, or scope exclusions listed earlier in this rule).
+- `edited: <one-line summary>`
+- `checked: ok`
+- `skipped: <reason>` (vendored / out-of-scope path)
 
-Format (filenames in the example below are illustrative — list whatever your project actually ships; see `00-universal-core.mdc` "Project documentation"):
+Format (filenames are illustrative — list whatever your project actually ships, per `00-universal-core.mdc` "Project documentation"):
 
 ```
 Docs review:
-- <root-readme>.md — edited: <one-line summary>
+- <root-readme>.md — edited: <summary>
 - CHANGELOG.md — edited: appended [X.Y.Z] entry
-- docs/<some-spec>.md — checked: ok (no relevant change in this task)
-- docs/<subdir>/ (N files) — checked: ok (group; same status applies to all)
-- <vendored-or-skipped-path>/** (N files) — skipped: <reason>
-Total: M files reviewed, A edited, B ok, C skipped
+- docs/<some-spec>.md — checked: ok (no relevant change)
+- docs/<subdir>/ (N files) — checked: ok (group: same status for all)
+- <vendored-path>/** (N files) — skipped: <reason>
+Total: M reviewed, A edited, B ok, C skipped
 ```
 
-A concrete worked example for a real change:
-
-```
-Docs review:
-- README.md — edited: replaced "安装" with "复制" in the install paragraph
-- CHANGELOG.md — edited: appended [0.7.0] entry
-- docs/SETUP.md — checked: ok (no install-method change in this task)
-- docs/api/ (12 files) — checked: ok (API docs; this task did not change any API surface)
-- skills/upstream/** (3 files) — skipped: vendored upstream, out of scope
-Total: 18 files reviewed, 2 edited, 13 ok, 3 skipped
-```
-
-Grouping rules:
-
-- You **may** group files in the same subdirectory under `<dir>/ (N files) — <status>` **only when every file in that group shares the same status**. If any file in a group has a different status, list each file separately.
-- The trailing `Total: ... reviewed, ... edited, ... ok, ... skipped` line is required and must add up to the actual file count under scope.
-- A file appearing nowhere in this enumeration counts as missing — the parent agent / human reader can detect that immediately.
+You **may** group `<dir>/ (N files) — <status>` only when every file in the group shares that status. The `Total:` line must equal the in-scope file count. A file appearing nowhere counts as missing.
 
 ### Other sub-reports
 
 - `.gitignore: <unchanged | updated to add: <patterns>>`
-- `Secret-leak scan: clean` **or** `Secret-leak scan: BLOCKED on <paths>` (and the task must be in `blocked` state)
-- `Deletion-rename grep sweep: <N/A: nothing deleted or renamed | clean | <list of intentional carryovers and why>>`
+- `Secret-leak scan: clean` **or** `Secret-leak scan: BLOCKED on <paths>` (task must be `blocked`)
+- `Deletion-rename grep sweep: <N/A: nothing deleted or renamed | clean | <intentional carryovers and why>>`

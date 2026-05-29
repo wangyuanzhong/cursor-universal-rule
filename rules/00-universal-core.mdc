@@ -29,18 +29,7 @@ If signals are mixed (e.g. WSL on a developer machine: Linux uname but home-dir 
 
 ## "Project documentation" — what this term means
 
-When any rule in this pack says **the project's documentation**, it means the set of `**/*.md` and `**/*.txt` files the project itself ships under the standard scope of `docs-sync-before-finish.mdc` (i.e. excluding `node_modules/`, `dist/`, `bin/`, `obj/`, `.git/`, `vendor/`, large `models/`, vendored `skills/upstream/**`, and any path covered by the project's `.gitignore`).
-
-**Discover** this set by reading the repo. Do **not** assume any particular filename exists or is called any particular thing. Different projects use different conventions — examples you may or may not encounter:
-
-- a root introduction file named `README.md`, `INTRODUCTION.md`, `Readme`, or a non-English equivalent (or none at all);
-- a `docs/`, `documentation/`, `wiki/`, or `spec/` subtree;
-- agent-facing instructions in `AGENTS.md`, `AGENT.md`, `CONTRIBUTING.md`, `.cursor/README.md`, or nowhere;
-- internal specs as `.txt` files anywhere in the repo.
-
-The **only** file this rules pack itself pins by name is `CHANGELOG.md` (per `versioning-and-changelog.mdc`). Everywhere else, names are project-defined and must be discovered by walking the repo, not assumed.
-
-When several docs cover the same topic and disagree, prefer the one closer to the project root and to the user-facing surface (a top-level introduction usually beats an internal note; an explicit user-facing spec usually beats a contributor guide).
+**The project's documentation** = every `**/*.md` and `**/*.txt` the project itself ships, scoped per `docs-sync-before-finish.mdc`. **Discover** these files by walking the repo; do not assume any specific filename. The only file this pack pins by name is `CHANGELOG.md` (per `versioning-and-changelog.mdc`). When multiple docs disagree on the same topic, prefer the one closer to the project root and to the user-facing surface.
 
 ## You MUST
 
@@ -61,36 +50,23 @@ When several docs cover the same topic and disagree, prefer the one closer to th
 
 ## Sub-agent commit/push policy
 
-A "sub-agent" is anything you spawn via the Task tool (or equivalent). Two scenarios:
+A "sub-agent" is anything you spawn via the Task tool. Two scenarios:
 
-- **Scenario A — worktree-isolated sub-agent.** Identified by **either**:
-  - Sub-agent type is `best-of-n-runner` (or any other "isolated git worktree" runner), **or**
-  - The sub-agent's `git rev-parse --git-dir` differs from yours, indicating an independent worktree / branch.
+- **Scenario A** — sub-agent in an isolated worktree (type `best-of-n-runner`, or `git rev-parse --git-dir` differs from yours). MAY commit and push its own branch. Before returning to its caller it MUST own all of: own `CHANGELOG.md` entry, pre-push hygiene per `docs-sync-before-finish.mdc`, **watching its push's CI to a documented end state** per `post-push-ci-green.mdc`, and a verbatim Done check. If the sub-agent's environment cannot do all four (no `gh`, time/turn budget, missing tools), it MUST NOT push — leave changes for the parent or return `blocked: <reason>`.
+- **Scenario B** — sub-agent shares the parent's workspace (default for `generalPurpose`, `explore`, etc). MUST NOT `git add` / `git commit` / `git push`. Leaves modifications in the working tree; the top-level agent commits, pushes, runs Done check, watches CI.
 
-  In Scenario A the sub-agent **MAY** commit and push to its own branch. It is responsible for **all** of the following before returning to its caller:
-  - Its own `CHANGELOG.md` entry per `versioning-and-changelog.mdc`.
-  - Its own pre-push hygiene (`docs-sync-before-finish.mdc`), including the docs review enumeration and the deletion / rename grep sweep.
-  - **Watching its push's CI to a documented end state** per `post-push-ci-green.mdc`. The sub-agent must not return until CI is green or hits a documented stop condition.
-  - Its own verbatim Done check, output in its return message.
-
-  If the sub-agent's environment cannot perform any of the above (no `gh`, hard time budget, missing tools), it MUST NOT push. It either leaves changes in the working tree (treat itself as Scenario B for this task) or returns early with an explicit `blocked: <reason>`.
-
-- **Scenario B — shared-workspace sub-agent.** Default for `generalPurpose`, `explore`, etc.
-
-  In Scenario B the sub-agent **MUST NOT** `git commit`, `git push`, or stage with `git add`. It leaves modifications in the working tree. The top-level agent does the single commit + push at the end of its own reply, runs the parent's Done check, and watches CI.
-
-If you cannot tell which scenario applies, treat it as Scenario B.
+If unsure, treat as Scenario B.
 
 ### Parent verification when a sub-agent returns — MUST
 
-You (the parent) **must not declare your own task done** until you have verified, for every sub-agent that returned during this task:
+Before declaring your own task done, verify for every sub-agent that returned:
 
-1. **Done check present and clean.** Sub-agent's reply contains a verbatim Done check; every item is `done` or `N/A: <reason>`. Any `blocked` is propagated up — you cannot quietly swallow it.
-2. **CI status known.** If the sub-agent reports a push, the CI run on the sub-agent's branch reached `success` or a documented stop condition. If absent, treat as `blocked: sub-agent did not watch CI` and watch CI yourself (`gh run list --branch <sub-agent-branch>`, `gh run watch`) before declaring done.
-3. **CHANGELOG present.** If the sub-agent's push changed project files, the sub-agent appended a `CHANGELOG.md` entry. If absent, treat as `blocked: sub-agent did not update CHANGELOG`, write the entry yourself, push, watch CI again.
-4. **Docs review enumerated.** Sub-agent's reply contains the per-file docs review enumeration required by `docs-sync-before-finish.mdc`. A bare `Reviewed N docs, no edits needed` is **not acceptable** and counts as a missing report.
+1. **Done check** present and clean (every item `done` or `N/A: <reason>`; any `blocked` propagates up).
+2. **CI** on the sub-agent's branch reached success or a documented stop. If absent → `blocked: sub-agent did not watch CI`; watch CI yourself (`gh run list --branch <sub-agent-branch>` then `gh run watch`).
+3. **CHANGELOG** entry present if the sub-agent's push changed project files. If absent → `blocked: sub-agent did not update CHANGELOG`; write the entry, push, watch CI again.
+4. **Docs review** enumerated per-file (a bare `Reviewed N docs, no edits needed` is not acceptable). If absent → `blocked: sub-agent docs review not enumerated`; enumerate yourself.
 
-The parent's Done check is responsible for the union of (parent's own work) and (verification of every sub-agent's work).
+Your Done check covers the union of (your own work) and (verification of every sub-agent's work).
 
 ## Done check (output this list at end of every task)
 

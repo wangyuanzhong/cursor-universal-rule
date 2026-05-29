@@ -87,7 +87,7 @@ Hard stops (no push, report and wait): detached HEAD, in-progress merge/rebase, 
 
 ## After push (always — Cloud or Local; whoever pushed watches)
 
-Watch only runs triggered by the latest push on the current branch (`gh run list --branch ... --limit 10`, `gh run watch --exit-status`). Fix red, push, watch again. Stop after 2 identical failures and escalate. **There is no Local opt-out.** (Older versions of this pack honored `.cursor/.local-skip-post-push-ci`; that file is now ignored.)
+Watch only runs triggered by the latest push on the current branch (`gh run list --branch ... --limit 10`, `gh run watch --exit-status`). Fix red, push, watch again. Stop after 2 identical failures and escalate. **There is no Local opt-out.**
 
 **Whoever ran `git push` watches CI for that push to a documented end state, before returning to their caller.** This includes Scenario A sub-agents on their own branch. Sub-agents must NOT delegate CI watching back to the parent. If a sub-agent cannot watch CI in its environment, it must NOT push.
 
