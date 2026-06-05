@@ -25,10 +25,11 @@
 - **You MUST NOT** — 明确的负面清单。
 - **Required output / Stop conditions** — 任务结束时必须输出哪些信息、何时停止重试。
 
-`00-universal-core.mdc` 还要求 Agent：
+`00-universal-core.mdc` 的 **Rule 0** 把 Done check 升级成「自我强制的收尾动作」，并要求 Agent：
 
 1. 在计划里写**两行**（都强制）：`MODE: Local | Cloud | ambiguous` 和 `Closing: I will end this reply with the verbatim Done check.`。后一行是 commitment device，写下来之后最终消息必须匹配。
-2. 在最终消息里**主动逐项打勾输出 Done check**（`done` / `N/A: <reason>` / `blocked: <reason>`），任何 `blocked` 必须停下来报给用户。**不能等用户问"你跑 Done check 了吗"才补做**——被问到时已经违约。
+2. **每条回复都以 Done check 收尾，绝不什么都不写**：改了文件就逐项打勾输出完整 Done check（`done` / `N/A: <reason>` / `blocked: <reason>`）；确实没改任何文件，就写一行 `Done check: N/A — this reply changed no files`。没有「改动太小所以免了」这种例外，一行改动也照样输出完整 block。
+3. **发送前自检**：重读草稿，若改了文件却没有以 Done check 结尾，这条回复就是 INVALID，必须补上再发。任何 `blocked` 必须停下来报用户。**不能等用户问"你跑 Done check 了吗"才补做**——被问到时已经违约。
 
 ## 模式判定（Cloud vs Local）
 

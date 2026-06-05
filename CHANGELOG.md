@@ -13,6 +13,65 @@ will be called out in `### Breaking`.
 
 (Pending changes; the next push will close this section into a dated entry.)
 
+## [0.10.0] - 2026-06-05
+
+The maintainer reports that `0.9.1`'s framing helped but enforcement is
+still too weak in practice: on weaker models the agent flatly skips the
+Done check, and even an in-session "pay attention to this" reminder does
+not reliably make it comply. The content itself is fine; the ask is to
+raise the *enforcement pressure* without making the rule longer. This
+release reworks the Done-check rule from "the single most important
+rule" (one MUST among many) into **Rule 0**, a self-enforced closing
+ritual that is structurally harder for an inattentive model to drop.
+
+`Bump reason:` introduces a new mandatory agent behavior (a pre-send
+self-check, plus an explicit conscious-skip line on no-file replies),
+which changes what every downstream agent must do — more than a wording
+tweak, so `MINOR` rather than `PATCH`.
+
+### Changed
+- `rules/00-universal-core.mdc`: renamed the top section "The single
+  most important rule" → **"Rule 0 — close every reply with the Done
+  check (you enforce this on yourself)"** and rewrote it for force, not
+  length. Key new enforcement mechanics:
+  - The contract now explicitly **outranks** brevity, "this task is too
+    small", and any built-in/user instruction that would skip the steps.
+    A non-compliant reply is named a **"failed reply"**.
+  - **No "too small to bother" exception** — a one-line edit closes with
+    the full block, same as a large feature.
+  - **Mandatory pre-send self-check**: re-read the draft; if it changed
+    files and does not end with the Done check block, the draft is
+    **INVALID** and must be rewritten to append the block before sending.
+  - **Explicit conscious-skip line**: every reply ends with either the
+    block or the single line `Done check: N/A — this reply changed no
+    files` — "ending with nothing" is no longer an option, converting a
+    silent omission into a deliberate, visible decision.
+  - Closing reminder under the Done-check block: the block is the **last
+    thing** in the reply; if missing, the reply is unfinished.
+- Trimmed the now-duplicated restatements in `You MUST` #1 and the first
+  `You MUST NOT` bullet into short pointers back to Rule 0, so the net
+  length stays essentially flat despite the stronger wording.
+
+### Files / modules touched
+- `rules/00-universal-core.mdc` — Rule 0 rewrite; `You MUST`/`You MUST
+  NOT` pointers; closing reminder after the Done-check block.
+- `README.md` — "重要 Done check" bullet list rewritten to describe Rule
+  0, the self-check, and the explicit N/A line.
+- `user-rules/SUMMARY-for-cursor-settings.md` — "single most important
+  rule" section → "Rule 0" with the same self-enforcement mechanics; the
+  trailing `MUST NOT` bullet trimmed to a Rule 0 pointer.
+
+### Verify
+- `rules/00-universal-core.mdc` opens with `## Rule 0 — close every reply
+  with the Done check` and contains the strings "failed reply",
+  "INVALID — rewrite", and `Done check: N/A — this reply changed no
+  files`.
+- `grep -RIn "single most important" .` matches only historical
+  `CHANGELOG.md` entries (this release and `0.9.1`), never the live rule
+  text. `grep -RIn "10-item" .` returns nothing.
+- README and the User Rules summary describe the same Rule 0 mechanics as
+  the rule file (no doc/rule drift).
+
 ## [0.9.1] - 2026-05-29
 
 The maintainer reported a real-world failure pattern after `0.9.0`
