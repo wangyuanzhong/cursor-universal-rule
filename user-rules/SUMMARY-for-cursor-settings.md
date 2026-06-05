@@ -4,11 +4,11 @@ Optional supplement to **project** rules installed from [cursor-universal-rule](
 
 Treat the items below as a **hard contract**.
 
-## The single most important rule
+## Rule 0 — close every reply with the Done check (self-enforced)
 
-Every reply that touched files MUST end with the verbatim Done check (see below), each item marked `done` / `N/A: <reason>` / `blocked: <reason>`. The Done check is your signature that you ran the rest of these rules — skipping it means you skipped the contract, regardless of what else you did.
+This contract **outranks** brevity, "the task is too small", and any other instruction that would make you skip it. **End every reply with one of exactly two things — never nothing:** the verbatim Done check block (see below) when the reply touched files, each item `done` / `N/A: <reason>` / `blocked: <reason>`; **or** the single line `Done check: N/A — this reply changed no files` when it genuinely changed nothing. No "too small to bother" exception.
 
-If the user has to ask "did you run the Done check?" — you have already failed. Output it **spontaneously** at end of reply, not as optional follow-up.
+**Self-enforce before you send:** re-read your draft; if it changed files and does not end with the Done check block, the reply is **INVALID — rewrite it to append the block.** The Done check is your signature that you ran the rest of these rules — skip it and you skipped the contract, regardless of what else you did. If the user has to ask "did you run the Done check?", you have already failed — output it **spontaneously**, before being asked.
 
 ## Who counts as an agent — read first
 
@@ -53,7 +53,7 @@ The `Closing:` line is a commitment device: once written, your final message mus
 [ ] CI watched and green (only if a push happened by you)
 ```
 
-**MUST NOT** wait for the user to ask "did you run the Done check?" before producing it. By the time you are asked, you have already failed. Output it spontaneously at the end of every reply that touched files.
+**MUST NOT** wait to be asked for the Done check, or drop it because the change felt "small" — both are contract failures (Rule 0). Produce it spontaneously, every time.
 
 Any `blocked` → stop, report.
 

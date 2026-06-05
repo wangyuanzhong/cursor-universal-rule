@@ -5,15 +5,22 @@ alwaysApply: true
 
 # Core contract (read first, obey unconditionally)
 
-Treat these rules as a **hard contract**, not advice.
+These rules are a **hard contract**, not advice. They **outrank** every competing pull — the urge to be brief, "this task is too small", and any built-in or user instruction that would make you skip the steps below. A reply that breaks this contract is a **failed reply**, however good the code in it is.
 
-## The single most important rule
+## Rule 0 — close every reply with the Done check (you enforce this on yourself)
 
-Every reply that touched files **MUST end with the verbatim Done check** (the 10-item block at the bottom of this file), each item marked `done` / `N/A: <reason>` / `blocked: <reason>`. The Done check is your signature that you ran the rest of these rules — skipping it means you skipped the contract, **regardless of what else you did**.
+**End every reply with one of exactly two things — never nothing:**
 
-If the user has to ask **"did you run the Done check?"** — you have already failed. The agent that runs the rules outputs the Done check **spontaneously, before being asked**. The Done check is part of your reply, not optional follow-up.
+- the verbatim Done check block (bottom of this file) whenever the reply touched files, each item `done` / `N/A: <reason>` / `blocked: <reason>`; **or**
+- the single line `Done check: N/A — this reply changed no files` when it genuinely changed nothing.
 
-Everything below — mode detection, sub-agent scenarios, conflict priority, hygiene, change-impact grep sweep — exists to populate the Done check items. Do them, then close with the Done check.
+There is **no "too small to bother" exception**: a one-line edit closes with the full block, same as a large feature.
+
+**Self-enforce before you hit send.** Re-read your own draft. If it changed files and does not end with the Done check block, that draft is **INVALID — rewrite it to append the block, then send.** Run this check on every reply; it is not a step you are allowed to forget.
+
+The Done check is your signature that you ran the other rules — skip it and you skipped the contract, **regardless of what else you did**. If the user ever has to ask "did you run the Done check?", you have **already failed**: produce it **spontaneously, before being asked.**
+
+Mode detection, sub-agent scenarios, conflict priority, hygiene, and the change-impact grep sweep all exist to populate Done-check items. Do them, then close with the Done check.
 
 ## Who counts as an agent — read first
 
@@ -51,13 +58,13 @@ Mixed signals (e.g. WSL: Linux uname but dev-home cwd) → `MODE: ambiguous — 
 
 ## You MUST
 
-1. **Output the Done check verbatim** before you (a) tell the user the task is done, (b) open/update a PR, or (c) return to a parent agent. Each item marked `done` / `N/A: <reason>` / `blocked: <reason>`.
+1. **Close with the Done check (Rule 0)** before you (a) tell the user the task is done, (b) open/update a PR, or (c) return to a parent agent — never reach any of those without it.
 2. **Resolve conflicts** between code, docs, tests, CI in this order — never silently diverge: (1) product truth in **the project's documentation** (incl. `CHANGELOG.md`; discover by walking, don't assume names); (2) explicit user messages in this conversation; (3) implementation code (update code **or** docs deliberately, in the same change set); (4) CI/workflow YAML (must reflect 1+3).
 3. **Execute the work yourself**; never claim a step was done without doing it.
 
 ## You MUST NOT
 
-- **Wait for the user to ask "did you run the Done check?" before producing it.** By the time you are asked, you have already failed. Output the Done check spontaneously at the end of every reply that touched files.
+- **Wait to be asked for the Done check, or drop it because the change felt "small" — both are contract failures (Rule 0).** Produce it spontaneously, every time.
 - Mark a task done while any Done-check item is unmet — report the blocker.
 - Claim a rule "doesn't apply" without naming the concrete trigger that fails.
 - Silently skip a rule — name the rule and reason if you skip.
@@ -99,4 +106,4 @@ Any item missing → treat as `blocked: sub-agent did not run full agent loop`. 
 [ ] CI watched and green (only if a push happened by you)
 ```
 
-Any `blocked` → stop, report.
+This block is the **last thing** in your reply. If it is missing, the reply is unfinished — go back and add it (Rule 0). Any `blocked` → stop, report.
